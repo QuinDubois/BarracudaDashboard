@@ -4,17 +4,17 @@ import numpy as np
 #######################################################################################################################
 
 
-#Flag records in the input dataset with the input flags
+# Flag records in the input dataset with the input flags
 #######################################################################################################################
-def FlagSort(dataframe, y_col, time_key, trend_size, deviation, flags):
+def control_sort(dataframe, y_col, time_key, trend_size, deviation, flags):
     avg = np.average(dataframe[y_col])          # average of the dataset
     std = np.std(dataframe[y_col])              # standard deviation of the dataset
     std_co = deviation                          # coefficient to determine the minimum deviations we care about
-    FLAGS = list(flags.keys())                  # flags to assign to data points from dictionary parameter keys
+    # FLAGS = list(flags.keys())                  # flags to assign to data points from dictionary parameter keys
     relevant_bounds_idx = []                    # an index of bounds for the segments of the trend chart
 
-    if 'flag' not in dataframe.columns.values.tolist():
-        dataframe.insert(dataframe.shape[1], 'flag', FLAGS[0])
+    # if 'flag' not in dataframe.columns.values.tolist():
+    #     dataframe.insert(dataframe.shape[1], 'flag', FLAGS[0])
 
     # Main process loop, for every enabled flag, mark the relevant data.
     for key in flags:
@@ -37,8 +37,6 @@ def FlagSort(dataframe, y_col, time_key, trend_size, deviation, flags):
 
             if key == 'trending up' or key == 'trending down':
                 relevant_bounds_idx = TrendBySlope(dataframe, y_col, time_key, trend_size)
-
-
 
     return dataframe, relevant_bounds_idx
 

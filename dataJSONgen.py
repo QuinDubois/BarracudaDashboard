@@ -171,9 +171,10 @@ def fill_json(json_data, known_keys):
                 else:
                     continue
         # Once again if we found nothing, we have to get it manually.
-        if spatial_keys == []:
+        if len(spatial_keys) < 2:
             # Spatial keys manual input
-            print("Spatial Keys unknown, must be entered manually.")
+            print("Spatial Keys incomplete or unknown, keys must be entered manually.")
+            spatial_keys = []
             print("Please input the field name of the Latitude key:")
             lat_key = input(">")
             spatial_keys.append(lat_key)

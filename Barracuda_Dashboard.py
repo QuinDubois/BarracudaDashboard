@@ -1,20 +1,18 @@
 import pathlib
 import dash
 import json
-import netCDF4 as nc
 from dash import dcc
 from dash import html
 import pandas as pd
 from dash.dependencies import Input, Output, State
-import cufflinks as cf
 import plotly_express as px
 import plotly.graph_objects as go
 from app import app
 from app import server
 import numpy as np
 from urllib.request import urlopen
-from barracuda_sorter import FlagSort
-from barracuda_plotter import PlotChart
+from Barracuda_Processing import control_sort
+from Barracuda_Plotting import default_chart, plot_control, plot_choropleth
 
 # # Load data
 APP_PATH = str(pathlib.Path(__file__).parent.resolve())
@@ -73,19 +71,19 @@ counties = json.load(file)
 ###     - A new line needs to be added here when a new dataset is added to the dashboard
 #############################################################################
 # read in climate data
-dat = "data/output.csv"
-datDF = pd.read_csv(dat, dtype={'fips': str})
+data_annual_climate = "data/output.csv"
+df_annual_climate = pd.read_csv(data_annual_climate, dtype={'fips': str})
 
 # read in kestral range shift data
-dat1 = "data/kestralModel.csv"
-datDFKest = pd.read_csv(dat1)
+data_kestral_model = "data/kestralModel.csv"
+df_kestral_model = pd.read_csv(data_kestral_model)
 
 # read in carya ovata range shift data
-dat2 = "data/Carya_ovata.csv"
-datDFCar = pd.read_csv(dat2)
+data_carya_ovata = "data/Carya_ovata.csv"
+df_carya_ovata = pd.read_csv(data_carya_ovata)
 
-dat3 = "data/carya_ovata_10km.csv"
-datDFCarkm = pd.read_csv(dat3)
+data_carya_ovata_spacetime = "data/carya_ovata_10km.csv"
+df_carya_ovata_spacetime = pd.read_csv(data_carya_ovata_spacetime)
 #############################################################################
 
 
@@ -98,30 +96,30 @@ datDFCarkm = pd.read_csv(dat3)
 #   - Will be able to identify datasets based on whether it has fips data or lat/long data
 #       to make processing easier.
 data_json_path = "data/dataset-names.json"
-dataJson = {}
+data_json_dict = {}
 try:
     with open(data_json_path) as json_file:
-        dataJson = json.load(json_file)
+        data_json_dict = json.load(json_file)
 except json.JSONDecodeError as error:
     print(">>> ERROR Loading JSON: JSON empty or invalid structure. Dataframe Selectors will not work properly! <<<")
-    dataJson = {}
+    data_json_dict = {}
 except FileNotFoundError as error:
     print(
         ">>> ERROR Loading JSON: JSON " + data_json_path + " does not exist. Dataframe Selectors will not work properly! <<<")
-    dataJson = {}
+    data_json_dict = {}
 
 datasetOpts = []
 
-for key in dataJson.keys():
+for key in data_json_dict.keys():
     datasetOpts.append(
-        {'label': dataJson[key]['dataset_label'],
+        {'label': data_json_dict[key]['dataset_label'],
          'value': key}
     )
 #############################################################################
 
 
 # flags for sorting the selected data
-flags = {
+data_styles = {
     "base": [COLOR_STYLES["line_colors"][0], 1],
     "above average": [COLOR_STYLES["marker_colors"][0], 1],
     "below average": [COLOR_STYLES["marker_colors"][1], 1],
@@ -132,7 +130,7 @@ flags = {
 }
 
 flags_opts = []
-for key in flags:
+for key in data_styles:
     flags_opts.append({'label': key, 'value': key})
 
 #######################################################################################################################
@@ -435,7 +433,7 @@ app.layout = html.Div(
                                     dcc.Checklist(
                                         id='flag-checklist',
                                         options=flags_opts[1:],
-                                        value=list(flags.keys())[1:],
+                                        value=list(data_styles.keys())[1:],
                                         labelStyle={'display': 'block'}
                                     ),
                                 ]),
@@ -458,24 +456,40 @@ app.layout = html.Div(
         ),
     ],
 )
+#######################################################################################################################
+
+'''
+Below are the Callbacks for updating elements when the user interacts with the dashboard.
+
+update_year_slider_visibility - Updates the visibility of the year slider based on the spatial data type of the 
+                                dataset. Datasets with county level data need a manual slider, while 
+                                latitude/longitude centric datasets have an animated slider built in. 
+                                
+                  display_map - Updates the choropleth chart with the selected data.
+                                
+        display_selected_data - Updates the plot charts using the data selected on the choropleth chart.
+                                
+                 change_panel - Updates the panel containing the plots to display the currently selected plot.
+                                
+         update_data_selector - Updates the variable selector dropdown with the relevant variables present in the
+                                chosen dataset.
+'''
 
 
 #######################################################################################################################
-
-
-# Update choropleth layout
-#######################################################################################################################
+# Update Year Slider visibility, county based datasets need a manual slider.
 @app.callback(
     Output(component_id='year-container', component_property='style'),
     [
         Input(component_id='dataframe-dropdown', component_property='value')
     ]
 )
-def show_hide_element(visibility_state):
-    if dataJson[visibility_state]['space_type'] == 'latlong':
+def update_year_slider_visibility(visibility_state):
+    if data_json_dict[visibility_state]['space_type'] == 'latlong':
         return {'display': 'none'}
 
 
+# Callback for Cloropleth figure
 @app.callback(
     Output("county-choropleth", "figure"),
     [
@@ -485,83 +499,17 @@ def show_hide_element(visibility_state):
         Input("year-slider", "value"),
     ],
 )
-#######################################################################################################################
-
-### Here we build the main choropleth figure and populate the layout
-#######################################################################################################################
 def display_map(figure, data_dropdown, dataframe_dropdown, year_slider):
-    mapDat = select_dataframe(dataframe_dropdown)
-
-    # write if else statement here:
-    if dataJson[dataframe_dropdown]['space_type'] == 'latlong':
-        # plot scatter box
-        # find the max value
-        maxVal = np.nanmax(mapDat[data_dropdown])
-
-        fig = px.scatter_mapbox(mapDat, lat=dataJson[dataframe_dropdown]['space_keys'][0],
-                                lon=dataJson[dataframe_dropdown]['space_keys'][1],
-                                color=data_dropdown,
-                                animation_frame=dataJson[dataframe_dropdown]['temporal_key'],
-                                range_color=(0, maxVal),
-                                color_continuous_scale="Viridis",
-                                opacity=0.8,
-                                )
-        fig.update_layout(mapbox_style="carto-darkmatter", mapbox_zoom=4.5, mapbox_center={"lat": 43, "lon": -74}, )
-        fig.update_layout(margin={"r": 0, "t": 0, "l": 20, "b": 0},
-                          plot_bgcolor=COLOR_STYLES["chart_background"],
-                          paper_bgcolor=COLOR_STYLES["chart_background"],
-                          font=dict(color=COLOR_STYLES["font"]),
-                          # dragmode="lasso",
-                          )
-        fig.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"] = 200
-        fig.layout.updatemenus[0].buttons[0].args[1]["transition"]["duration"] = 200
-        fig.layout.coloraxis.showscale = True
-        fig.layout.sliders[0].pad.t = 10
-        fig.layout.updatemenus[0].pad.t = 10
-        fig.layout.height = 600
-
-    else:
-        # plot choropleth
-
-        # Find max value for heat map bar
-        maxVal = max(mapDat[data_dropdown])
-
-        # filter by year
-        map_dat_filtered = mapDat[(mapDat[dataJson[dataframe_dropdown]['temporal_key']] == year_slider)]
-
-        fig = px.choropleth_mapbox(map_dat_filtered, geojson=counties, locations='fips', color=data_dropdown,
-                                   color_continuous_scale="Viridis",
-                                   # animation_frame="year",
-                                   range_color=(0, maxVal),
-                                   mapbox_style="carto-darkmatter",
-                                   zoom=2.9, center={"lat": 34.640033, "lon": -95.981758},
-                                   opacity=0.9,
-                                   labels={data_dropdown: ' ', 'time': 'Year', 'Counties': 'County Code'}
-                                   )
-
-        fig.update_layout(margin={"r": 0, "t": 0, "l": 20, "b": 0},
-                          geo_scope='usa',
-                          # dragmode="lasso", #select
-                          plot_bgcolor=COLOR_STYLES["chart_background"],  # 1f2630 dark blue
-                          paper_bgcolor=COLOR_STYLES["chart_background"],  # 7fafdf light blue text
-                          font=dict(color=COLOR_STYLES["font"]),
-                          height=600,
-                          )
+    map_dat = select_dataframe(dataframe_dropdown)
+    fig = plot_choropleth(
+        figure, map_dat, dataframe_dropdown, data_dropdown, data_json_dict, COLOR_STYLES, year_slider, counties
+    )
 
     return fig
 
 
-#######################################################################################################################
-
-
-# human data
-# climate vs range shift
-# historical vs modeled
-# 10km grid for range
-
-# callback for selected data on map
-#######################################################################################################################
-@app.callback(  # callback for selected data on map for chart on right
+# Update the other charts using the data selected in the choropleth.
+@app.callback(
     [
         Output("selected-data", "figure"),
         Output('selected-control-data', 'figure'),
@@ -579,22 +527,18 @@ def display_map(figure, data_dropdown, dataframe_dropdown, year_slider):
         State("data-dropdown", "options"),
     ],
 )
-#######################################################################################################################
-
-# Plot the time series on the right
-#######################################################################################################################
 def display_selected_data(selected_data, chart_dropdown, data_dropdown, dataframe_dropdown, trend, deviation,
                           flag_checklist,
                           all_trends, opts):
     if selected_data is None:
-        fig = default_chart()
+        fig = default_chart(COLOR_STYLES)
         return fig, fig, fig
 
     chart_dat = select_dataframe(dataframe_dropdown)
     yval = data_dropdown
-    lat_val = dataJson[dataframe_dropdown]['space_keys'][0]
-    lon_val = dataJson[dataframe_dropdown]['space_keys'][1]
-    time_val = dataJson[dataframe_dropdown]['temporal_key']
+    lat_val = data_json_dict[dataframe_dropdown]['space_keys'][0]
+    lon_val = data_json_dict[dataframe_dropdown]['space_keys'][1]
+    time_val = data_json_dict[dataframe_dropdown]['temporal_key']
 
     # find points from the selected data
     pts = selected_data["points"]
@@ -603,7 +547,7 @@ def display_selected_data(selected_data, chart_dropdown, data_dropdown, datafram
 
     the_label = str(the_label).replace('[', '').replace(']', '')
 
-    if dataJson[dataframe_dropdown]["space_type"] == 'latlong':
+    if data_json_dict[dataframe_dropdown]["space_type"] == 'latlong':
 
         latVals = [d["lat"] for d in pts if "lat" in d]
         lonVals = [d["lon"] for d in pts if "lon" in d]
@@ -616,7 +560,7 @@ def display_selected_data(selected_data, chart_dropdown, data_dropdown, datafram
         subDF = df.loc[df.index.isin(vals)]
 
     else:
-        fips_val = dataJson[dataframe_dropdown]['space_keys'][2]
+        fips_val = data_json_dict[dataframe_dropdown]['space_keys'][2]
         # yval = data_dropdown
 
         # get a list of all locations selected
@@ -627,7 +571,7 @@ def display_selected_data(selected_data, chart_dropdown, data_dropdown, datafram
         subDF = df.loc[df.index.isin(vals)]
 
     if subDF.empty:
-        fig = default_chart()
+        fig = default_chart(COLOR_STYLES)
         return fig, fig, fig
 
     # select the data to plot
@@ -666,7 +610,7 @@ def display_selected_data(selected_data, chart_dropdown, data_dropdown, datafram
 
     # Control Chart Figure
     ##########################################################################################
-    flag_dict = flags
+    flag_dict = data_styles
     for fkey in flag_dict:
         if fkey not in flag_checklist:
             flag_dict[fkey][1] = 0
@@ -674,8 +618,8 @@ def display_selected_data(selected_data, chart_dropdown, data_dropdown, datafram
             flag_dict[fkey][1] = 1
 
     # Control Chart Dataframe Analysis and Plotting
-    conDF, segments = FlagSort(summDF, yval, time_val, trend, deviation, flag_dict)
-    controlFig = PlotChart(conDF, segments, yval, time_val, all_trends, flag_dict)
+    conDF, segments = control_sort(summDF, yval, time_val, trend, deviation, flag_dict)
+    controlFig = plot_control(conDF, segments, yval, time_val, all_trends, flag_dict)
 
     cFig_layout = style_figure(controlFig["layout"], the_label)
     ##########################################################################################
@@ -722,11 +666,7 @@ def display_selected_data(selected_data, chart_dropdown, data_dropdown, datafram
     return fig, controlFig, statespace_Fig
 
 
-#######################################################################################################################
-
-
 # Update display for graph panel
-#######################################################################################################################
 @app.callback([
     Output("selected-control-data", "style"),
     Output("selected-statespace-data", "style"),
@@ -803,12 +743,7 @@ def change_panel(chart_swapper, aggregation_dropdown):
                agg_val
 
 
-#######################################################################################################################
-
-
 # Update Data Selection Dropdown
-#######################################################################################################################
-
 @app.callback([
     Output("data-dropdown", "options"),
     Output("data-dropdown", "value")
@@ -820,8 +755,8 @@ def change_panel(chart_swapper, aggregation_dropdown):
 def update_data_selector(dataframe_dropdown):
     dataOpts = []
 
-    dataOpts = dataJson[dataframe_dropdown]['fields']
-    dataValue = dataJson[dataframe_dropdown]['fields'][0]["value"]
+    dataOpts = data_json_dict[dataframe_dropdown]['fields']
+    dataValue = data_json_dict[dataframe_dropdown]['fields'][0]["value"]
 
     return dataOpts, dataValue
 
@@ -831,21 +766,6 @@ def update_data_selector(dataframe_dropdown):
 
 # Additional Helper Functions
 #######################################################################################################################
-
-# Return a default chart when the dataset is empty
-def default_chart():
-    return dict(
-        data=[dict(x=0, y=0)],
-        layout=dict(
-            title="Click drag on the map to select counties",
-            paper_bgcolor=COLOR_STYLES["chart_background"],
-            plot_bgcolor=COLOR_STYLES["chart_background"],
-            font=dict(color=COLOR_STYLES["font"]),
-            margin=dict(t=75, r=50, b=100, l=75),
-        )
-    )
-
-
 # Style the chart figures for consistency
 def style_figure(layout, title):
     fig_layout = layout
@@ -873,13 +793,13 @@ def style_figure(layout, title):
 #   - A line needs to be added here when adding a new dataframe to the dashboard.
 def select_dataframe(dataframe_label):
     if dataframe_label == 'output.csv':
-        return datDF
+        return df_annual_climate
     elif dataframe_label == 'kestralModel.csv':
-        return datDFKest
+        return df_kestral_model
     elif dataframe_label == 'Carya_ovata.csv':
-        return datDFCar
+        return df_carya_ovata
     elif dataframe_label == 'carya_ovata_10km.csv':
-        return datDFCarkm
+        return df_carya_ovata_spacetime
     else:
         return pd.Dataframe()
 

@@ -7,10 +7,24 @@ import scipy.stats as sp
 
 #######################################################################################################################
 
-
-# Creates a plotly figure based on the input DataFrame and parameters
+# Primary Plotting Functions
 #######################################################################################################################
-def PlotChart(dataframe, segments, y_col, time_key, show_all, flags):
+
+def default_chart(color_styles):
+    fig = dict(
+        data=[dict(x=0, y=0)],
+        layout=dict(
+            title="Click drag on the map to select counties",
+            paper_bgcolor=color_styles["chart_background"],
+            plot_bgcolor=color_styles["chart_background"],
+            font=dict(color=color_styles["font"]),
+            margin=dict(t=75, r=50, b=100, l=75),
+        )
+    )
+    return fig
+
+# Creates a control chart plotly figure based on the input DataFrame and parameters
+def plot_control(dataframe, segments, y_col, time_key, show_all, flags):
 
     fig = go.Figure()
 
@@ -25,8 +39,6 @@ def PlotChart(dataframe, segments, y_col, time_key, show_all, flags):
 
     printTrend = True
 
-    print(dataframe.head(20))
-
     # loop to generate chart contents, do not include markers without a flag in the legend
     for d in flags:
         if flags[d][1] == 1:
@@ -38,7 +50,6 @@ def PlotChart(dataframe, segments, y_col, time_key, show_all, flags):
 
             # For all other data, we only use scatter plot markers.
             elif d not in ['trending up', 'trending down']:
-                print(f"Markers {d}")
                 d_filter = d + ' mask'
                 df = dataframe.loc[dataframe[d_filter] == 1]
                 fig.add_trace(go.Scatter(x=df[time_key],
@@ -63,6 +74,67 @@ def PlotChart(dataframe, segments, y_col, time_key, show_all, flags):
                   )
 
     return fig
+
+
+# Creates Choropleth figure
+def plot_choropleth(figure, dataframe, dataframe_label, data_label, data_json, color_styles, years, counties):
+    # write if else statement here:
+    if data_json[dataframe_label]['space_type'] == 'latlong':
+        # plot scatter box
+        # find the max value
+        maxVal = np.nanmax(dataframe[data_label])
+
+        fig = px.scatter_mapbox(dataframe, lat=data_json[dataframe_label]['space_keys'][0],
+                                lon=data_json[dataframe_label]['space_keys'][1],
+                                color=data_label,
+                                animation_frame=data_json[dataframe_label]['temporal_key'],
+                                range_color=(0, maxVal),
+                                color_continuous_scale="Viridis",
+                                opacity=0.8,
+                                )
+        fig.update_layout(mapbox_style="carto-darkmatter", mapbox_zoom=4.5, mapbox_center={"lat": 43, "lon": -74}, )
+        fig.update_layout(margin={"r": 0, "t": 0, "l": 20, "b": 0},
+                          plot_bgcolor=color_styles["chart_background"],
+                          paper_bgcolor=color_styles["chart_background"],
+                          font=dict(color=color_styles["font"]),
+                          # dragmode="lasso",
+                          )
+        fig.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"] = 200
+        fig.layout.updatemenus[0].buttons[0].args[1]["transition"]["duration"] = 200
+        fig.layout.coloraxis.showscale = True
+        fig.layout.sliders[0].pad.t = 10
+        fig.layout.updatemenus[0].pad.t = 10
+        fig.layout.height = 600
+
+    else:
+        # plot choropleth
+
+        # Find max value for heat map bar
+        maxVal = max(dataframe[data_label])
+
+        # filter by year
+        map_dat_filtered = dataframe[(dataframe[data_json[dataframe_label]['temporal_key']] == years)]
+
+        fig = px.choropleth_mapbox(map_dat_filtered, geojson=counties, locations='fips', color=data_label,
+                                   color_continuous_scale="Viridis",
+                                   # animation_frame="year",
+                                   range_color=(0, maxVal),
+                                   mapbox_style="carto-darkmatter",
+                                   zoom=2.9, center={"lat": 34.640033, "lon": -95.981758},
+                                   opacity=0.9,
+                                   labels={data_label: ' ', 'time': 'Year', 'Counties': 'County Code'}
+                                   )
+
+        fig.update_layout(margin={"r": 0, "t": 0, "l": 20, "b": 0},
+                          geo_scope='usa',
+                          # dragmode="lasso", #select
+                          plot_bgcolor=color_styles["chart_background"],  # 1f2630 dark blue
+                          paper_bgcolor=color_styles["chart_background"],  # 7fafdf light blue text
+                          font=dict(color=color_styles["font"]),
+                          height=600,
+                          )
+
+    return fig
 #######################################################################################################################
 
 
@@ -74,7 +146,7 @@ def plot_trends(fig, dataframe, segments, y_col, time_key, show_all, trace_count
     trend_down_legend = False
     trend_insig_legend = False
 
-    # Loop through each segment and determine whether or not to plot it's associated trend
+    # Loop through each segment and determine regardless of whether we plot it's associated trend or not,
     # based on our criteria. (show_all, trending flags, p value significance)
     for start_idx, end_idx in zip(segments[:-1], segments[1:]):
         segment = dataframe.iloc[start_idx:end_idx + 1, :]
