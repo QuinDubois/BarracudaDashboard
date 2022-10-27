@@ -51,6 +51,8 @@ def trend_by_slope(dataframe, y_col, time_key, t_size):
     bounds_idx = [0]
     cumulative_slope = [0]
 
+    dataframe['row'] = np.arange(len(dataframe))
+
     for i in range(1, dataframe.shape[0]):
         segment = dataframe.iloc[0:i+1, :]
 
@@ -91,6 +93,6 @@ def trend_by_slope(dataframe, y_col, time_key, t_size):
 # Helper Functions
 #######################################################################################################################
 # helper function to calculate slope of a dataframe
-def calc_slope(df, time_key, y):
-    slope = np.polyfit(df[time_key], df[y], 1)
+def calc_slope(df, time_key, y_val):
+    slope = np.polyfit(df['row'], df[y_val], 1)
     return slope[0]

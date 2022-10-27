@@ -5,10 +5,12 @@
 
 
 import pandas as pd
+from pandas.api.types import is_numeric_dtype
 import plotly.graph_objects as go
 import plotly.express as px
 import numpy as np
-import scipy.stats as sp
+import datetime
+import statsmodels.api as sm
 
 
 #######################################################################################################################
@@ -66,7 +68,7 @@ def plot_control(dataframe, segments, y_col, time_key, show_all, flags):
         if flags[d][1] == 1:
             if (d == 'trending up' or d == 'trending down') and print_trend:
 
-                fig = plot_trends(fig, dataframe, segments, y_col, time_key, show_all, trace_count, flags)
+                fig = plot_trends(fig, dataframe, segments, y_col, time_key, show_all, flags)
 
                 print_trend = False
 
@@ -104,12 +106,13 @@ def plot_choropleth(figure, dataframe, dataframe_label, data_label, data_json, c
     if data_json[dataframe_label]['space_type'] == 'latlong':
         # plot scatter box
         # find the max value
+        dataframe['timeChar'] = dataframe[data_json[dataframe_label]['temporal_key']].astype('str')
         max_val = np.nanmax(dataframe[data_label])
 
         fig = px.scatter_mapbox(dataframe, lat=data_json[dataframe_label]['space_keys'][0],
                                 lon=data_json[dataframe_label]['space_keys'][1],
                                 color=data_label,
-                                animation_frame=data_json[dataframe_label]['temporal_key'],
+                                animation_frame='timeChar',
                                 range_color=(0, max_val),
                                 color_continuous_scale="Viridis",
                                 opacity=0.8,
@@ -162,65 +165,56 @@ def plot_choropleth(figure, dataframe, dataframe_label, data_label, data_json, c
 
 # Add trend lines to figure, plots trend lines of imported segments for the dataset.
 #######################################################################################################################
-def plot_trends(fig, dataframe, segments, y_col, time_key, show_all, trace_count, flags):
-    # legend sentinels
-    trend_up_legend = False
-    trend_down_legend = False
-    trend_insig_legend = False
+def plot_trends(fig, df_plot, segments, y_col, time_key, show_all, flags):
 
-    # Loop through each segment and determine regardless of whether we plot it's associated trend or not,
-    # based on our criteria. (show_all, trending flags, p value significance)
     for start_idx, end_idx in zip(segments[:-1], segments[1:]):
-        segment = dataframe.iloc[start_idx:end_idx + 1, :]
-        reg = sp.linregress(segment[time_key], segment[y_col])
-        fit_color = flags['trending up'][0] if reg.slope > 0 else flags['trending down'][0]
+        segment = df_plot.iloc[start_idx:end_idx + 1, :].copy()
 
-        if show_all == ['true'] and reg.pvalue > 0.05:
-            if (flags['trending up'][1] == 1 and reg.slope >= 0) or \
-                    (flags['trending down'][1] == 1 and reg.slope < 0):
-                trend_fig = draw_trendline(segment, y_col, time_key, "rgb(150,150,150,1)")
-                fig.add_trace(trend_fig.data[1])
+        if not is_numeric_dtype(segment[time_key]):
+            segment['serial_time'] = [(d - datetime.datetime(1970, 1, 1)).days for d in segment[time_key]]
+        else:
+            segment['serial_time'] = segment[time_key]
 
-                # Show legend only once
-                if not trend_insig_legend:
-                    fig['data'][trace_count]['showlegend'] = True
-                    fig['data'][trace_count]['name'] = "Non-Significant Trend"
-                    trend_insig_legend = True
+        x = sm.add_constant(segment['serial_time'])
+        model = sm.OLS(segment[y_col], x).fit()
+        segment['fitted_values'] = model.fittedvalues
 
-                trace_count += 1
+        fit_color = flags['trending up'][0] if model.params['serial_time'] > 0 \
+            else flags['trending down'][0]
 
-        elif reg.pvalue <= 0.05:
-            if (flags['trending up'][1] == 1 and reg.slope >= 0) or \
-                    (flags['trending down'][1] == 1 and reg.slope < 0):
-                trend_fig = draw_trendline(segment, y_col, time_key, fit_color)
-                fig.add_trace(trend_fig.data[1])
+        trend_name = "Trending Up" if model.params['serial_time'] > 0 else "Trending Down"
 
-                # Show legend only once
-                if reg.slope >= 0 and not trend_up_legend:
-                    fig['data'][trace_count]['showlegend'] = True
-                    fig['data'][trace_count]['name'] = "Trending Up"
-                    trend_up_legend = True
-                elif reg.slope < 0 and not trend_down_legend:
-                    fig['data'][trace_count]['showlegend'] = True
-                    fig['data'][trace_count]['name'] = "Trending Down"
-                    trend_down_legend = True
+        print_trend = False
 
-                trace_count += 1
+        if show_all:
+            print_trend = True
+        else:
+            if model.f_pvalue < 0.05:
+                if flags['trending up'][1] == 1 and model.params['serial_time'] > 0:
+                    print_trend = True
+                elif flags['trending down'][1] == 1 and model.params['serial_time'] <= 0:
+                    print_trend = True
+                else:
+                    pass
+            else:
+                pass
+
+        if print_trend:
+            fig.add_trace(go.Scatter(
+                x=segment[time_key],
+                y=segment['fitted_values'],
+                mode='lines',
+                line=dict(color=fit_color),
+                name=trend_name,
+            ))
+
+    # Ensure duplicate legend items get filtered
+    legend_names = set()
+    fig.for_each_trace(
+        lambda trace:
+        trace.update(showlegend=False) if (trace.name in legend_names) else legend_names.add(trace.name)
+    )
 
     return fig
-
-#######################################################################################################################
-
-
-# Helper functions
-#######################################################################################################################
-
-# Draw a single trend line
-def draw_trendline(segment, y_col, time_key, fit_color):
-    return px.scatter(x=segment[time_key],
-                      y=segment[y_col],
-                      trendline='ols',
-                      trendline_color_override=fit_color,
-                      )
 
 #######################################################################################################################

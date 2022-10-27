@@ -84,6 +84,8 @@ df_carya_ovata = pd.read_csv(data_carya_ovata)
 # read in carya ovata range shift data imported from spacetime API
 data_carya_ovata_spacetime = "data/carya_ovata_10km.csv"
 df_carya_ovata_spacetime = pd.read_csv(data_carya_ovata_spacetime)
+df_carya_ovata_spacetime['time'] = df_carya_ovata_spacetime['time'].astype("datetime64[ns]")
+print(df_carya_ovata_spacetime['time'])
 
 #############################################################################
 # Import Data labels JSON
@@ -468,7 +470,7 @@ def update_year_slider_visibility(visibility_state):
         return {'display': 'none'}
 
 
-# Callback for Cloropleth figure
+# Callback for Choropleth figure
 @app.callback(
     Output("county-choropleth", "figure"),
     [
@@ -556,19 +558,19 @@ def display_selected_data(selected_data, chart_dropdown, data_dropdown, datafram
     ##########################################################################################
     if chart_dropdown == "mean":
         # summary by time
-        summ_df = sub_df.groupby(time_val).mean().reset_index()
+        summ_df = sub_df.groupby(time_val).mean(numeric_only=False).reset_index()
 
     if chart_dropdown == "median":
         # summary by time
-        summ_df = sub_df.groupby(time_val).median().reset_index()
+        summ_df = sub_df.groupby(time_val).median(numeric_only=False).reset_index()
 
     if chart_dropdown == "min":
         # summary by time
-        summ_df = sub_df.groupby(time_val).min().reset_index()
+        summ_df = sub_df.groupby(time_val).min(numeric_only=False).reset_index()
 
     if chart_dropdown == "max":
         # summary by time
-        summ_df = sub_df.groupby(time_val).max().reset_index()
+        summ_df = sub_df.groupby(time_val).max(numeric_only=False).reset_index()
     ##########################################################################################
 
     # Line Chart Figure
