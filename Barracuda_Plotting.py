@@ -1,3 +1,9 @@
+# Barracuda Dashboard
+# Authors: Alex Burnham, Quinlan Dubois
+# Latest Revision: 0.1.1
+# Latest Revision Date: 10/26/2022
+
+
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.express as px
@@ -23,6 +29,22 @@ def default_chart(color_styles):
     )
     return fig
 
+
+# Creates a simple line plot.
+def plot_line(df, time_val, y_val, color_styles):
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=df[time_val],
+        y=df[y_val],
+        mode='lines',
+        line={'color': color_styles['line_colors'][0]},
+        showlegend=False
+    ))
+
+    return fig
+
+
 # Creates a control chart plotly figure based on the input DataFrame and parameters
 def plot_control(dataframe, segments, y_col, time_key, show_all, flags):
 
@@ -37,16 +59,16 @@ def plot_control(dataframe, segments, y_col, time_key, show_all, flags):
 
     trace_count = 1  # Track which trace we are on
 
-    printTrend = True
+    print_trend = True
 
     # loop to generate chart contents, do not include markers without a flag in the legend
     for d in flags:
         if flags[d][1] == 1:
-            if (d == 'trending up' or d == 'trending down') and printTrend:
+            if (d == 'trending up' or d == 'trending down') and print_trend:
 
                 fig = plot_trends(fig, dataframe, segments, y_col, time_key, show_all, trace_count, flags)
 
-                printTrend = False
+                print_trend = False
 
             # For all other data, we only use scatter plot markers.
             elif d not in ['trending up', 'trending down']:
@@ -82,13 +104,13 @@ def plot_choropleth(figure, dataframe, dataframe_label, data_label, data_json, c
     if data_json[dataframe_label]['space_type'] == 'latlong':
         # plot scatter box
         # find the max value
-        maxVal = np.nanmax(dataframe[data_label])
+        max_val = np.nanmax(dataframe[data_label])
 
         fig = px.scatter_mapbox(dataframe, lat=data_json[dataframe_label]['space_keys'][0],
                                 lon=data_json[dataframe_label]['space_keys'][1],
                                 color=data_label,
                                 animation_frame=data_json[dataframe_label]['temporal_key'],
-                                range_color=(0, maxVal),
+                                range_color=(0, max_val),
                                 color_continuous_scale="Viridis",
                                 opacity=0.8,
                                 )
@@ -110,7 +132,7 @@ def plot_choropleth(figure, dataframe, dataframe_label, data_label, data_json, c
         # plot choropleth
 
         # Find max value for heat map bar
-        maxVal = max(dataframe[data_label])
+        max_val = max(dataframe[data_label])
 
         # filter by year
         map_dat_filtered = dataframe[(dataframe[data_json[dataframe_label]['temporal_key']] == years)]
@@ -118,7 +140,7 @@ def plot_choropleth(figure, dataframe, dataframe_label, data_label, data_json, c
         fig = px.choropleth_mapbox(map_dat_filtered, geojson=counties, locations='fips', color=data_label,
                                    color_continuous_scale="Viridis",
                                    # animation_frame="year",
-                                   range_color=(0, maxVal),
+                                   range_color=(0, max_val),
                                    mapbox_style="carto-darkmatter",
                                    zoom=2.9, center={"lat": 34.640033, "lon": -95.981758},
                                    opacity=0.9,
@@ -156,8 +178,8 @@ def plot_trends(fig, dataframe, segments, y_col, time_key, show_all, trace_count
         if show_all == ['true'] and reg.pvalue > 0.05:
             if (flags['trending up'][1] == 1 and reg.slope >= 0) or \
                     (flags['trending down'][1] == 1 and reg.slope < 0):
-                trendfig = draw_trendline(segment, y_col, time_key, "rgb(150,150,150,1)")
-                fig.add_trace(trendfig.data[1])
+                trend_fig = draw_trendline(segment, y_col, time_key, "rgb(150,150,150,1)")
+                fig.add_trace(trend_fig.data[1])
 
                 # Show legend only once
                 if not trend_insig_legend:
@@ -170,8 +192,8 @@ def plot_trends(fig, dataframe, segments, y_col, time_key, show_all, trace_count
         elif reg.pvalue <= 0.05:
             if (flags['trending up'][1] == 1 and reg.slope >= 0) or \
                     (flags['trending down'][1] == 1 and reg.slope < 0):
-                trendfig = draw_trendline(segment, y_col, time_key, fit_color)
-                fig.add_trace(trendfig.data[1])
+                trend_fig = draw_trendline(segment, y_col, time_key, fit_color)
+                fig.add_trace(trend_fig.data[1])
 
                 # Show legend only once
                 if reg.slope >= 0 and not trend_up_legend:

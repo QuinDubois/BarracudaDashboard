@@ -1,4 +1,4 @@
-# dataJSONgen.py is meant to generate a JSON file to ensure all datasets are usable within the Barracuda Dashboard.
+# Data_Json_Generator.py is meant to generate a JSON file to ensure all datasets are usable within the Barracuda Dashboard.
 
 import json
 import csv
