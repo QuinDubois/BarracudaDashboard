@@ -1,9 +1,3 @@
-# Barracuda Dashboard
-# Authors: Alex Burnham, Quinlan Dubois
-# Latest Revision: 0.1.1
-# Latest Revision Date: 10/26/2022
-
-
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
 import plotly.graph_objects as go

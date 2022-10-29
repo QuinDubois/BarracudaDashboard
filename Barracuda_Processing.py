@@ -1,9 +1,3 @@
-# Barracuda Dashboard
-# Authors: Alex Burnham, Quinlan Dubois
-# Latest Revision: 0.1.1
-# Latest Revision Date: 10/26/2022
-
-
 import pandas as pd
 import numpy as np
 
