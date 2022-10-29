@@ -21,39 +21,10 @@ from App import app
 from App import server
 
 from Barracuda_Processing import control_sort
-from Barracuda_Plotting import default_chart, plot_line, plot_control, plot_choropleth
+from Barracuda_Plotting import default_chart, plot_line, plot_control, plot_choropleth, plot_statespace
+from Barracuda_Styles import data_styles
 
-# Style constants
 DEFAULT_OPACITY = 0.8
-
-COLOR_STYLES = {
-    "chart_background": "#E6E4E6",
-    "chart_grid": "#B3B1B3",
-    "tick_font": "#111111",
-    "font": "#111111",
-    "line_colors": [
-        "#21A0A6"
-    ],
-    "marker_colors": [
-        "#FAEA48",
-        "#c47e0e",
-        "#4951de",
-        "#bd51c9",
-        "#4cbf39",
-        "#c95034",
-    ]
-}
-
-# flags for sorting the selected data
-data_styles = {
-    "base": [COLOR_STYLES["line_colors"][0], 1],
-    "above average": [COLOR_STYLES["marker_colors"][0], 1],
-    "below average": [COLOR_STYLES["marker_colors"][1], 1],
-    "deviation above": [COLOR_STYLES["marker_colors"][2], 1],
-    "deviation below": [COLOR_STYLES["marker_colors"][3], 1],
-    "trending up": [COLOR_STYLES["marker_colors"][4], 1],
-    "trending down": [COLOR_STYLES["marker_colors"][5], 1]
-}
 
 # Load data
 APP_PATH = str(pathlib.Path(__file__).parent.resolve())
@@ -85,7 +56,11 @@ df_carya_ovata = pd.read_csv(data_carya_ovata)
 data_carya_ovata_spacetime = "data/carya_ovata_10km.csv"
 df_carya_ovata_spacetime = pd.read_csv(data_carya_ovata_spacetime)
 df_carya_ovata_spacetime['time'] = df_carya_ovata_spacetime['time'].astype("datetime64[ns]")
-print(df_carya_ovata_spacetime['time'])
+
+# read in precipitation dataset imported from spacetime API
+data_precipitation = "data/precip_past.csv"
+df_precipitation = pd.read_csv(data_precipitation)
+df_precipitation['time'] = df_carya_ovata_spacetime['time'].astype("datetime64[ns]")
 
 #############################################################################
 # Import Data labels JSON
@@ -139,75 +114,76 @@ app.layout = html.Div(
 
         # App Container
         html.Div(
-            id="app-container",
+            id="app-container", className="container",
             children=[
-
-                # Top row
+                # Left Column
                 html.Div(
-                    id="top-row",
+                    id="left-column", className="inner-container",
                     children=[
-
-                        # Left panel
+                        # Data Selector Container
+                        ########################################################################################
                         html.Div(
-                            id="choropleth-container",
+                            id="dropdown-container", className="panel",
                             children=[
-                                html.Div(
-                                    id="dropdown-container",
-                                    children=[
 
-                                        # Dataframe Selector Dropdown
-                                        html.P(id="dataframe-title", children="Select a Dataset"),
-                                        dcc.Dropdown(
-                                            options=dataset_options,
-                                            value='output.csv',
-                                            id="dataframe-dropdown"
-                                        ),
-
-                                        # Data Selector Dropdown
-                                        html.P(id="data-title", children="Select a Variable to Plot"),
-                                        dcc.Dropdown(
-                                            options=[
-                                                {
-                                                    "label": "Average of Nighttime Minimum Temperature, (deg. C)",
-                                                    "value": "tmin",
-                                                },
-                                                {
-                                                    "label": "Average of Daytime High Temperature, (deg. C)",
-                                                    "value": "tmax",
-                                                },
-                                                {
-                                                    "label": "Average of Daily Mean Temperature, (deg. C)",
-                                                    "value": "tmean",
-                                                },
-                                                {
-                                                    "label": "Total Annual Precipitation, (mm)",
-                                                    "value": "prec",
-                                                },
-                                                {
-                                                    "label": "Total April Precipitation, (mm)",
-                                                    "value": "aprec",
-                                                },
-                                                {
-                                                    "label": "Length of Frost Free Period, (days)",
-                                                    "value": "ffp",
-                                                },
-                                            ],
-                                            value="tmin",
-                                            id="data-dropdown",
-                                        ),
-                                    ],
+                                # Dataframe Selector Dropdown
+                                html.P(id="dataframe-title", children="Select a Dataset"),
+                                dcc.Dropdown(
+                                    options=dataset_options,
+                                    value='output.csv',
+                                    id="dataframe-dropdown"
                                 ),
 
-                                # Choropleth Chart
+                                # Data Selector Dropdown
+                                html.P(id="data-title", children="Select a Variable to Plot"),
+                                dcc.Dropdown(
+                                    options=[
+                                        {
+                                            "label": "Average of Nighttime Minimum Temperature, (deg. C)",
+                                            "value": "tmin",
+                                        },
+                                        {
+                                            "label": "Average of Daytime High Temperature, (deg. C)",
+                                            "value": "tmax",
+                                        },
+                                        {
+                                            "label": "Average of Daily Mean Temperature, (deg. C)",
+                                            "value": "tmean",
+                                        },
+                                        {
+                                            "label": "Total Annual Precipitation, (mm)",
+                                            "value": "prec",
+                                        },
+                                        {
+                                            "label": "Total April Precipitation, (mm)",
+                                            "value": "aprec",
+                                        },
+                                        {
+                                            "label": "Length of Frost Free Period, (days)",
+                                            "value": "ffp",
+                                        },
+                                    ],
+                                    value="tmin",
+                                    id="data-dropdown",
+                                ),
+                            ],
+                        ),
+                        ########################################################################################
+
+                        # Choropleth Chart
+                        ########################################################################################
+                        html.Div(
+                            id="map-panel", className="panel",
+                            children=[
                                 html.Div(
                                     id="heatmap-container",
                                     children=[
                                         html.P(
                                             "Heatmap Over Time (Select Year Below Map)",
-                                            id="heatmap-title",
+                                            id="heatmap-title", className="panel-title"
                                         ),
                                         dcc.Graph(
-                                            id="county-choropleth",
+                                            id="county-choropleth", className="chart-content",
                                             figure=dict(
                                                 layout=dict(
                                                     mapbox=dict(
@@ -247,18 +223,25 @@ app.layout = html.Div(
                                             tooltip={"placement": "bottom", "always_visible": True},
                                             id="year-slider",
                                         ),
-                                    ], style={'display': 'block'},
+                                    ],
                                 ),
-
-                            ],
+                            ]
                         ),
 
-                        # Top Right, Graph Container
-                        html.Div(
-                            id="graph-container",
-                            children=[
+                        ########################################################################################
+                    ],
+                ),
 
-                                # Chart Swapper
+                # Right Column
+                html.Div(
+                    id="right-column", className="inner-container",
+                    children=[
+                        # Graph Container
+                        ################################################################################################
+                        html.Div(
+                            id='chart-selector', className="panel",
+                            children=[
+                                html.P(id="chart-select-title", children="Select the chart you would like to display."),
                                 html.Div(
                                     children=[
                                         dcc.Dropdown(
@@ -306,72 +289,97 @@ app.layout = html.Div(
                                     value="mean",
                                     id="aggregation-dropdown",
                                 ),
-                                html.P(id="controls-text",
-                                       children="Control options are below charts.",
-                                       style={'display': 'none'}),
+                            ]
+                        ),
 
-                                # Line Chart
-                                dcc.Graph(
-                                    className="top-right-panel-graph",
-                                    id="selected-data",
-                                    figure=dict(
-                                        data=[dict(x=0, y=0)],
-                                        layout=dict(
-                                            paper_bgcolor="#F4F4F8",
-                                            plot_bgcolor="#F4F4F8",
-                                            autofill=True,
-                                            margin=dict(t=75, r=50, b=100, l=50),
+                        html.Div(
+                            id="graph-container", className="panel",
+                            children=[
+
+                                html.Div(
+                                    id="line-chart-container",
+                                    children=[
+                                        html.P(
+                                            "Line Chart",
+                                            id="line-title", className="panel-title"
                                         ),
-                                    ),
+                                        # Line Chart
+                                        dcc.Graph(
+                                            id="line-chart", className="chart-content",
+                                            figure=dict(
+                                                data=[dict(x=0, y=0)],
+                                                layout=dict(
+                                                    paper_bgcolor="#F4F4F8",
+                                                    plot_bgcolor="#F4F4F8",
+                                                    autofill=True,
+                                                    margin={"r": 0, "t": 0, "l": 20, "b": 0},
+                                                ),
+                                            ),
+                                            style={'display': 'block'}
+                                        ),
+                                    ],
                                     style={'display': 'block'}
                                 ),
 
                                 # Control Chart
-                                dcc.Graph(
-                                    className="top-right-panel-graph",
-                                    id="selected-control-data",
-                                    figure=dict(
-                                        data=[dict(x=0, y=0)],
-                                        layout=dict(
-                                            paper_bgcolor="#F4F4F8",
-                                            plot_bgcolor="#F4F4F8",
-                                            autofill=True,
-                                            margin=dict(t=75, r=50, b=100, l=50),
+                                html.Div(
+                                    id="control-chart-container",
+                                    children=[
+                                        html.P(
+                                            "Control Chart",
+                                            id="control-title", className="panel-title"
                                         ),
-                                    ),
+                                        html.P(
+                                            id="controls-text",
+                                            children="Control options are below charts."
+                                        ),
+                                        dcc.Graph(
+                                            id="control-chart", className="chart-content",
+                                            figure=dict(
+                                                data=[dict(x=0, y=0)],
+                                                layout=dict(
+                                                    paper_bgcolor="#F4F4F8",
+                                                    plot_bgcolor="#F4F4F8",
+                                                    autofill=True,
+                                                    margin={"r": 0, "t": 0, "l": 20, "b": 0},
+                                                ),
+                                            ),
+                                        ),
+                                    ],
                                     style={'display': 'none'}
                                 ),
 
-                                # State-space Chart
-                                dcc.Graph(
-                                    className="top-right-panel-graph",
-                                    id="selected-statespace-data",
-                                    figure=dict(
-                                        data=[dict(x=0, y=0)],
-                                        layout=dict(
-                                            paper_bgcolor="#F4F4F8",
-                                            plot_bgcolor="#F4F4F8",
-                                            autofill=True,
-                                            margin=dict(t=75, r=50, b=100, l=50),
+                                # Statespace Chart
+                                html.Div(
+                                    id="statespace-chart-container",
+                                    children=[
+                                        html.P(
+                                            "Statespace Chart",
+                                            id="statespace-title", className="panel-title"
                                         ),
-                                    ),
+                                        dcc.Graph(
+                                            id="statespace-chart", className="chart-content",
+                                            figure=dict(
+                                                data=[dict(x=0, y=0)],
+                                                layout=dict(
+                                                    paper_bgcolor="#F4F4F8",
+                                                    plot_bgcolor="#F4F4F8",
+                                                    autofill=True,
+                                                    margin={"r": 0, "t": 0, "l": 20, "b": 0},
+                                                ),
+                                            ),
+                                        ),
+                                    ],
                                     style={'display': 'none'}
                                 ),
-
                             ],
                         ),
-                    ],
-                ),
-
-                # Bottom Row
-                html.Div(
-                    id="bottom-row",
-                    children=[
-                        html.Div(className="hidden", children=[]),
+                        ################################################################################################
 
                         # Controls container
+                        ################################################################################################
                         html.Div(
-                            id="control-container",
+                            id="control-container", className="panel",
                             children=[
                                 html.H4(children="Chart Display Options: "),
                                 html.Div(className="slider-box", children=[
@@ -430,9 +438,10 @@ app.layout = html.Div(
                                 ]),
                             ],
                         )
+                        ################################################################################################
                     ],
-                    style={'display': 'none'}
-                )
+                ),
+
             ],
         ),
     ],
@@ -483,19 +492,103 @@ def update_year_slider_visibility(visibility_state):
 def display_map(figure, data_dropdown, dataframe_dropdown, year_slider):
     map_dat = select_dataframe(dataframe_dropdown)
     fig = plot_choropleth(
-        figure, map_dat, dataframe_dropdown, data_dropdown, data_json_dict, COLOR_STYLES, year_slider, counties
+        figure, map_dat, dataframe_dropdown, data_dropdown, data_json_dict, year_slider, counties
     )
 
     return fig
 
 
-# Update the other charts using the data selected in the choropleth.
+# Update Line Chart
 @app.callback(
+    Output("line-chart", "figure"),
     [
-        Output("selected-data", "figure"),
-        Output('selected-control-data', 'figure'),
-        Output('selected-statespace-data', 'figure'),
+        Input("county-choropleth", "selectedData"),
+        Input("aggregation-dropdown", "value"),
+        Input("data-dropdown", "value"),
+        Input("dataframe-dropdown", "value"),
+        State("data-dropdown", "options"),
+        State("line-chart-container", "style"),
     ],
+)
+def display_line_chart(selected_data, chart_dropdown, data_dropdown, dataframe_dropdown, opts, line_chart_style):
+    if line_chart_style['display'] != 'none':
+        if selected_data is None:
+            fig = default_chart()
+            return fig
+
+        chart_dat = select_dataframe(dataframe_dropdown)
+        y_val = data_dropdown
+        lat_val = data_json_dict[dataframe_dropdown]['space_keys'][0]
+        lon_val = data_json_dict[dataframe_dropdown]['space_keys'][1]
+        time_val = data_json_dict[dataframe_dropdown]['temporal_key']
+
+        # find points from the selected data
+        pts = selected_data["points"]
+
+        the_label = [x['label'] for x in opts if x['value'] == data_dropdown]
+
+        the_label = str(the_label).replace('[', '').replace(']', '')
+
+        if data_json_dict[dataframe_dropdown]["space_type"] == 'latlong':
+
+            lat_vals = [d["lat"] for d in pts if "lat" in d]
+            lon_vals = [d["lon"] for d in pts if "lon" in d]
+
+            vals = list(zip(lat_vals, lon_vals))
+
+            # find the values for all selected counties for all years
+            df = chart_dat.set_index([lat_val, lon_val], drop=False)
+
+            sub_df = df.loc[df.index.isin(vals)]
+
+        else:
+            fips_val = data_json_dict[dataframe_dropdown]['space_keys'][2]
+
+            # get a list of all locations selected
+            vals = [d['location'] for d in pts if 'location' in d]
+
+            # find the values for all selected counties for all years
+            df = chart_dat.set_index([fips_val])
+            sub_df = df.loc[df.index.isin(vals)]
+
+        if sub_df.empty:
+            fig = default_chart()
+            return fig
+
+        # select the data to plot
+        ##########################################################################################
+        if chart_dropdown == "mean":
+            # summary by time
+            summ_df = sub_df.groupby(time_val).mean().reset_index()
+
+        if chart_dropdown == "median":
+            # summary by time
+            summ_df = sub_df.groupby(time_val).median().reset_index()
+
+        if chart_dropdown == "min":
+            # summary by time
+            summ_df = sub_df.groupby(time_val).min().reset_index()
+
+        if chart_dropdown == "max":
+            # summary by time
+            summ_df = sub_df.groupby(time_val).max().reset_index()
+        ##########################################################################################
+
+        # Line Chart Figure
+        ##########################################################################################
+
+        line_fig = plot_line(summ_df, time_val, y_val, the_label)
+        ##########################################################################################
+
+        return line_fig
+    else:
+        fig = default_chart()
+        return fig
+
+
+# Update Control Chart
+@app.callback(
+    Output('control-chart', 'figure'),
     [
         Input("county-choropleth", "selectedData"),
         Input("aggregation-dropdown", "value"),
@@ -506,144 +599,195 @@ def display_map(figure, data_dropdown, dataframe_dropdown, year_slider):
         Input("flag-checklist", "value"),
         Input("all-trend-checklist", "value"),
         State("data-dropdown", "options"),
+        State("control-chart-container", "style"),
     ],
 )
-def display_selected_data(selected_data, chart_dropdown, data_dropdown, dataframe_dropdown, trend, deviation,
-                          flag_checklist,
-                          all_trends, opts):
-    if selected_data is None:
-        fig = default_chart(COLOR_STYLES)
-        return fig, fig, fig
+def display_control_chart(selected_data, chart_dropdown, data_dropdown, dataframe_dropdown, trend, deviation,
+                          flag_checklist, all_trends, opts, control_chart_style):
+    if control_chart_style['display'] != 'none':
+        if selected_data is None:
+            fig = default_chart()
+            return fig
 
-    chart_dat = select_dataframe(dataframe_dropdown)
-    y_val = data_dropdown
-    lat_val = data_json_dict[dataframe_dropdown]['space_keys'][0]
-    lon_val = data_json_dict[dataframe_dropdown]['space_keys'][1]
-    time_val = data_json_dict[dataframe_dropdown]['temporal_key']
+        chart_dat = select_dataframe(dataframe_dropdown)
+        y_val = data_dropdown
+        lat_val = data_json_dict[dataframe_dropdown]['space_keys'][0]
+        lon_val = data_json_dict[dataframe_dropdown]['space_keys'][1]
+        time_val = data_json_dict[dataframe_dropdown]['temporal_key']
 
-    # find points from the selected data
-    pts = selected_data["points"]
+        # find points from the selected data
+        pts = selected_data["points"]
 
-    the_label = [x['label'] for x in opts if x['value'] == data_dropdown]
+        the_label = [x['label'] for x in opts if x['value'] == data_dropdown]
 
-    the_label = str(the_label).replace('[', '').replace(']', '')
+        the_label = str(the_label).replace('[', '').replace(']', '')
 
-    if data_json_dict[dataframe_dropdown]["space_type"] == 'latlong':
+        if data_json_dict[dataframe_dropdown]["space_type"] == 'latlong':
 
-        lat_vals = [d["lat"] for d in pts if "lat" in d]
-        lon_vals = [d["lon"] for d in pts if "lon" in d]
+            lat_vals = [d["lat"] for d in pts if "lat" in d]
+            lon_vals = [d["lon"] for d in pts if "lon" in d]
 
-        vals = list(zip(lat_vals, lon_vals))
+            vals = list(zip(lat_vals, lon_vals))
 
-        # find the values for all selected counties for all years
-        df = chart_dat.set_index([lat_val, lon_val], drop=False)
+            # find the values for all selected counties for all years
+            df = chart_dat.set_index([lat_val, lon_val], drop=False)
 
-        sub_df = df.loc[df.index.isin(vals)]
+            sub_df = df.loc[df.index.isin(vals)]
 
-    else:
-        fips_val = data_json_dict[dataframe_dropdown]['space_keys'][2]
-
-        # get a list of all locations selected
-        vals = [d['location'] for d in pts if 'location' in d]
-
-        # find the values for all selected counties for all years
-        df = chart_dat.set_index([fips_val])
-        sub_df = df.loc[df.index.isin(vals)]
-
-    if sub_df.empty:
-        fig = default_chart(COLOR_STYLES)
-        return fig, fig, fig
-
-    # select the data to plot
-    ##########################################################################################
-    if chart_dropdown == "mean":
-        # summary by time
-        summ_df = sub_df.groupby(time_val).mean(numeric_only=False).reset_index()
-
-    if chart_dropdown == "median":
-        # summary by time
-        summ_df = sub_df.groupby(time_val).median(numeric_only=False).reset_index()
-
-    if chart_dropdown == "min":
-        # summary by time
-        summ_df = sub_df.groupby(time_val).min(numeric_only=False).reset_index()
-
-    if chart_dropdown == "max":
-        # summary by time
-        summ_df = sub_df.groupby(time_val).max(numeric_only=False).reset_index()
-    ##########################################################################################
-
-    # Line Chart Figure
-    ##########################################################################################
-    line_fig = plot_line(summ_df, time_val, y_val, COLOR_STYLES)
-
-    fig_layout = style_figure(line_fig["layout"], the_label)
-    ##########################################################################################
-
-    # Control Chart Figure
-    ##########################################################################################
-    flag_dict = data_styles
-    for fkey in flag_dict:
-        if fkey not in flag_checklist:
-            flag_dict[fkey][1] = 0
         else:
-            flag_dict[fkey][1] = 1
+            fips_val = data_json_dict[dataframe_dropdown]['space_keys'][2]
 
-    # Control Chart Dataframe Analysis and Plotting
-    con_df, segments = control_sort(summ_df, y_val, time_val, trend, deviation, flag_dict)
-    control_fig = plot_control(con_df, segments, y_val, time_val, all_trends, flag_dict)
+            # get a list of all locations selected
+            vals = [d['location'] for d in pts if 'location' in d]
 
-    c_fig_layout = style_figure(control_fig["layout"], the_label)
-    ##########################################################################################
+            # find the values for all selected counties for all years
+            df = chart_dat.set_index([fips_val])
+            sub_df = df.loc[df.index.isin(vals)]
 
-    # State-Space Chart Figure
-    ##########################################################################################
-    statespace_fig = go.Figure()
+        if sub_df.empty:
+            fig = default_chart()
+            return fig
 
-    if chart_dropdown != "mean":
-        # State-space specific Aggregation
-        ###############################################################
-        statespace_df = sub_df[[time_val, y_val, lat_val, lon_val]]
+        # select the data to plot
+        ##########################################################################################
+        if chart_dropdown == "mean":
+            # summary by time
+            summ_df = sub_df.groupby(time_val).mean().reset_index()
 
-        # If we just did median on an even length dataset, we would find the average between the two middle values
-        # which often does not exist in the dataset. Knock the maximum value off the top of the dataset and grab the
-        # now middle value.
         if chart_dropdown == "median":
-            if len(vals) % 2 == 0:
-                sorted_ss_df = statespace_df.sort_values(by=[y_val], ascending=True)
-                statespace_chart_df = sorted_ss_df.groupby(time_val).apply(
-                    lambda x: x[x[y_val] == x[y_val].iloc[0:(int(len(x) - 1))].median()])
-            else:
-                statespace_chart_df = statespace_df.groupby(time_val).apply(lambda x: x[x[y_val] == x[y_val].median()])
-
-        if chart_dropdown == "max":
-            statespace_chart_df = statespace_df.groupby(time_val).apply(lambda x: x[x[y_val] == x[y_val].max()])
+            # summary by time
+            summ_df = sub_df.groupby(time_val).median().reset_index()
 
         if chart_dropdown == "min":
-            statespace_chart_df = statespace_df.groupby(time_val).apply(lambda x: x[x[y_val] == x[y_val].min()])
+            # summary by time
+            summ_df = sub_df.groupby(time_val).min().reset_index()
 
-        # State-space plotting
-        ################################################################
-        statespace_fig.add_trace(go.Scatter(x=statespace_chart_df[time_val],
-                                            y=statespace_chart_df[lat_val],
-                                            mode='lines',
-                                            name="Latitude", ))
-        statespace_fig.add_trace(go.Scatter(x=statespace_chart_df[time_val],
-                                            y=statespace_chart_df[lon_val],
-                                            mode='lines',
-                                            name="Longitude", ))
+        if chart_dropdown == "max":
+            # summary by time
+            summ_df = sub_df.groupby(time_val).max().reset_index()
+        ##########################################################################################
+        # Control Chart Figure
+        ##########################################################################################
 
-    statespace_fig_layout = style_figure(statespace_fig["layout"], the_label)
+        flag_dict = data_styles
+        for fkey in flag_dict:
+            if fkey not in flag_checklist:
+                flag_dict[fkey][1] = 0
+            else:
+                flag_dict[fkey][1] = 1
 
-    return line_fig, control_fig, statespace_fig
+        # Control Chart Dataframe Analysis and Plotting
+        con_df, segments = control_sort(summ_df, y_val, time_val, trend, deviation, flag_dict)
+        control_fig = plot_control(con_df, segments, y_val, time_val, the_label, all_trends, flag_dict)
+
+        ##########################################################################################
+        return control_fig
+    else:
+        fig = default_chart()
+        return fig
+
+
+# Update Statespace Chart
+@app.callback(
+    Output('statespace-chart', 'figure'),
+    [
+        Input("county-choropleth", "selectedData"),
+        Input("aggregation-dropdown", "value"),
+        Input("data-dropdown", "value"),
+        Input("dataframe-dropdown", "value"),
+        State("data-dropdown", "options"),
+        State("statespace-chart-container", "style")
+    ],
+)
+def display_statespace_chart(selected_data, chart_dropdown, data_dropdown, dataframe_dropdown,
+                            opts, statespace_chart_style):
+    if statespace_chart_style['display'] != 'none':
+        if selected_data is None:
+            fig = default_chart()
+            return fig
+
+        chart_dat = select_dataframe(dataframe_dropdown)
+        y_val = data_dropdown
+        lat_val = data_json_dict[dataframe_dropdown]['space_keys'][0]
+        lon_val = data_json_dict[dataframe_dropdown]['space_keys'][1]
+        time_val = data_json_dict[dataframe_dropdown]['temporal_key']
+
+        # find points from the selected data
+        pts = selected_data["points"]
+
+        the_label = [x['label'] for x in opts if x['value'] == data_dropdown]
+
+        the_label = str(the_label).replace('[', '').replace(']', '')
+
+        if data_json_dict[dataframe_dropdown]["space_type"] == 'latlong':
+
+            lat_vals = [d["lat"] for d in pts if "lat" in d]
+            lon_vals = [d["lon"] for d in pts if "lon" in d]
+
+            vals = list(zip(lat_vals, lon_vals))
+
+            # find the values for all selected counties for all years
+            df = chart_dat.set_index([lat_val, lon_val], drop=False)
+
+            sub_df = df.loc[df.index.isin(vals)]
+
+        else:
+            fips_val = data_json_dict[dataframe_dropdown]['space_keys'][2]
+
+            # get a list of all locations selected
+            vals = [d['location'] for d in pts if 'location' in d]
+
+            # find the values for all selected counties for all years
+            df = chart_dat.set_index([fips_val])
+            sub_df = df.loc[df.index.isin(vals)]
+
+        if sub_df.empty:
+            fig = default_chart()
+            return fig
+
+        # State-Space Chart Figure
+        ##########################################################################################
+
+        if chart_dropdown != "mean":
+            # State-space specific Aggregation
+            ###############################################################
+            statespace_df = sub_df[[time_val, y_val, lat_val, lon_val]]
+
+            # If we just did median on an even length dataset, we would find the average between the two middle values
+            # which often does not exist in the dataset. Knock the maximum value off the top of the dataset and grab the
+            # now middle value.
+            if chart_dropdown == "median":
+                if len(vals) % 2 == 0:
+                    sorted_ss_df = statespace_df.sort_values(by=[y_val], ascending=True)
+                    statespace_chart_df = sorted_ss_df.groupby(time_val).apply(
+                        lambda x: x[x[y_val] == x[y_val].iloc[0:(int(len(x) - 1))].median()])
+                else:
+                    statespace_chart_df = statespace_df.groupby(time_val).apply(
+                        lambda x: x[x[y_val] == x[y_val].median()])
+
+            if chart_dropdown == "max":
+                statespace_chart_df = statespace_df.groupby(time_val).apply(lambda x: x[x[y_val] == x[y_val].max()])
+
+            if chart_dropdown == "min":
+                statespace_chart_df = statespace_df.groupby(time_val).apply(lambda x: x[x[y_val] == x[y_val].min()])
+
+            # State-space plotting
+            ################################################################
+            statespace_fig = plot_statespace(statespace_chart_df, time_val, lat_val, lon_val, the_label)
+        else:
+            statespace_fig = default_chart("Please select a summary statistic.")
+        return statespace_fig
+    else:
+        fig = default_chart()
+        return fig
 
 
 # Update display for graph panel
 @app.callback([
-    Output("selected-control-data", "style"),
-    Output("selected-statespace-data", "style"),
-    Output("selected-data", "style"),
-    Output("bottom-row", "style"),
+    Output("line-chart-container", "style"),
+    Output("control-chart-container", "style"),
+    Output("statespace-chart-container", "style"),
+    Output("control-container", "style"),
     Output("controls-text", "style"),
     Output("aggregation-dropdown", "options"),
     Output("aggregation-dropdown", "value")
@@ -678,17 +822,25 @@ def change_panel(chart_swapper, aggregation_dropdown):
 
     # Return Values:
     ##################################
+    # Line Chart Visibility
     # Control Chart Visibility
     # State-Space Chart Visibility
-    # Line Chart Visibility
     # Bottom Row Visibility
     # Controls Visibility
     # Aggregation Dropdown Options
     # Aggregation Dropdown Value
     ##################################
-    if chart_swapper == "controlchart":
+    if chart_swapper == "linechart":
         return {'display': 'block'}, \
                {'display': 'none'}, \
+               {'display': 'none'}, \
+               {'display': 'none'}, \
+               {'display': 'none'}, \
+               agg_opts, \
+               agg_val
+    elif chart_swapper == "controlchart":
+        return {'display': 'none'}, \
+               {'display': 'block'}, \
                {'display': 'none'}, \
                {'display': 'flex'}, \
                {'display': 'flex'}, \
@@ -698,14 +850,6 @@ def change_panel(chart_swapper, aggregation_dropdown):
         agg_opts.pop(0)
         if agg_val == "mean":
             agg_val == "median"
-        return {'display': 'none'}, \
-               {'display': 'block'}, \
-               {'display': 'none'}, \
-               {'display': 'none'}, \
-               {'display': 'none'}, \
-               agg_opts, \
-               agg_val
-    elif chart_swapper == "linechart":
         return {'display': 'none'}, \
                {'display': 'none'}, \
                {'display': 'block'}, \
@@ -738,28 +882,6 @@ def update_data_selector(dataframe_dropdown):
 
 # Additional Helper Functions
 #######################################################################################################################
-# Style the chart figures for consistency
-def style_figure(layout, title):
-    fig_layout = layout
-
-    # See plot.ly/python/reference
-    fig_layout["yaxis"]["title"] = title
-    fig_layout["xaxis"]["title"] = "Time (years)"
-    fig_layout["yaxis"]["fixedrange"] = True
-    fig_layout["xaxis"]["fixedrange"] = False
-    fig_layout["hovermode"] = "closest"
-    fig_layout["legend"] = dict(orientation="v")
-    fig_layout["autosize"] = True
-    fig_layout["paper_bgcolor"] = COLOR_STYLES["chart_background"]
-    fig_layout["plot_bgcolor"] = COLOR_STYLES["chart_background"]
-    fig_layout["font"]["color"] = COLOR_STYLES["font"]
-    fig_layout["xaxis"]["tickfont"]["color"] = COLOR_STYLES["tick_font"]
-    fig_layout["yaxis"]["tickfont"]["color"] = COLOR_STYLES["tick_font"]
-    fig_layout["xaxis"]["gridcolor"] = COLOR_STYLES["chart_grid"]
-    fig_layout["yaxis"]["gridcolor"] = COLOR_STYLES["chart_grid"]
-
-    return fig_layout
-
 
 # Function for selecting which dataframe to load when we need to load a dataframe into a callback.
 #   - A line needs to be added here when adding a new dataframe to the dashboard.
@@ -772,6 +894,8 @@ def select_dataframe(dataframe_label):
         return df_carya_ovata
     elif dataframe_label == 'carya_ovata_10km.csv':
         return df_carya_ovata_spacetime
+    elif dataframe_label == 'precip_past.csv':
+        return df_precipitation
     else:
         return pd.Dataframe()
 

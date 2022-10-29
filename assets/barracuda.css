@@ -43,191 +43,8 @@
     z-index: 1002;
 }*/
 
-
-
-/* Grid
-–––––––––––––––––––––––––––––––––––––––––––––––––– */
-.container {
-    position: relative;
-    width: 100%;
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 0 20px;
-    box-sizing: border-box;
-}
-
-.column,
-.columns {
-    width: 100%;
-    float: left;
-    box-sizing: border-box;
-}
-
-/* For devices larger than 400px */
-@media (min-width: 400px) and (max-width: 549px) {
-    .container {
-        width: 85%;
-        padding: 0;
-    }
-}
-
-/* For devices larger than 550px */
-@media (min-width: 550px) {
-    .container {
-        width: 80%;
-    }
-
-    .column,
-    .columns {
-        margin-left: 4%;
-    }
-
-    .column:first-child,
-    .columns:first-child {
-        margin-left: 0;
-    }
-
-    .one.column,
-    .one.columns {
-        width: 4.66666666667%;
-    }
-
-    .two.columns {
-        width: 13.3333333333%;
-    }
-
-    .three.columns {
-        width: 22%;
-    }
-
-    .four.columns {
-        width: 30.6666666667%;
-    }
-
-    .five.columns {
-        width: 39.3333333333%;
-    }
-
-    .six.columns {
-        width: 48%;
-    }
-
-    .seven.columns {
-        width: 56.6666666667%;
-    }
-
-    .eight.columns {
-        width: 65.3333333333%;
-    }
-
-    .nine.columns {
-        width: 74.0%;
-    }
-
-    .ten.columns {
-        width: 82.6666666667%;
-    }
-
-    .eleven.columns {
-        width: 91.3333333333%;
-    }
-
-    .twelve.columns {
-        width: 100%;
-        margin-left: 0;
-    }
-
-    .one-third.column {
-        width: 30.6666666667%;
-    }
-
-    .two-thirds.column {
-        width: 65.3333333333%;
-    }
-
-    .one-half.column {
-        width: 48%;
-    }
-
-    /* Offsets */
-    .offset-by-one.column,
-    .offset-by-one.columns {
-        margin-left: 8.66666666667%;
-    }
-
-    .offset-by-two.column,
-    .offset-by-two.columns {
-        margin-left: 17.3333333333%;
-    }
-
-    .offset-by-three.column,
-    .offset-by-three.columns {
-        margin-left: 26%;
-    }
-
-    .offset-by-four.column,
-    .offset-by-four.columns {
-        margin-left: 34.6666666667%;
-    }
-
-    .offset-by-five.column,
-    .offset-by-five.columns {
-        margin-left: 43.3333333333%;
-    }
-
-    .offset-by-six.column,
-    .offset-by-six.columns {
-        margin-left: 52%;
-    }
-
-    .offset-by-seven.column,
-    .offset-by-seven.columns {
-        margin-left: 60.6666666667%;
-    }
-
-    .offset-by-eight.column,
-    .offset-by-eight.columns {
-        margin-left: 69.3333333333%;
-    }
-
-    .offset-by-nine.column,
-    .offset-by-nine.columns {
-        margin-left: 78.0%;
-    }
-
-    .offset-by-ten.column,
-    .offset-by-ten.columns {
-        margin-left: 86.6666666667%;
-    }
-
-    .offset-by-eleven.column,
-    .offset-by-eleven.columns {
-        margin-left: 95.3333333333%;
-    }
-
-    .offset-by-one-third.column,
-    .offset-by-one-third.columns {
-        margin-left: 34.6666666667%;
-    }
-
-    .offset-by-two-thirds.column,
-    .offset-by-two-thirds.columns {
-        margin-left: 69.3333333333%;
-    }
-
-    .offset-by-one-half.column,
-    .offset-by-one-half.columns {
-        margin-left: 52%;
-    }
-
-}
-
-
 /* Base Styles
-–––––––––––––––––––––––––––––––––––––––––––––––––– */
-/* NOTE
-html is set to 62.5% so that all the REM measurements throughout Skeleton
-are based on 10px sizing. So basically 1.5rem = 15px :) */
+-------------------------------------------------- */
 html {
     font-size: 50%;
     background-color: var(--page-background-color);
@@ -237,30 +54,118 @@ html {
 }
 
 body {
-    font-size: 1.5rem; /* currently ems cause chrome bug misinterpreting rems on body element */
+    font-size: 1.5rem;
     line-height: 1.6;
     font-weight: 400;
-    font-family: "Open Sans", "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: "Open Sans", "Helvetica", "HelveticaNeue", Helvetica, Arial, sans-serif;
     color: var(--text-primary-color);
     margin: 0;
 }
 
-#root {
-    margin: 0;
+/* Panels
+------------------------------------------------- */
+.container {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    min-height: 100%;
+    margin: 0px auto;
+    background-color: var(--page-background-color);
+    justify-content: center;
 }
 
-@media (max-width: 550px) {
-    #root {
-        padding: 2rem;
+.chart-content {
+    width: 872px;
+}
+
+/* For Mobile and small screens
+----------------------------------------------- */
+@media only screen and (max-width: 1250px) {
+    .inner-container{
+        min-width: 100%;
+    }
+    .panel {
+        min-width: 90%;
+        min-height: 10em;
+        padding: 1em;
+        margin: 1em;
+        border-radius: 1em;
+        background-color: var(--panel-color);
+        box-shadow: var(--dark-back-color) 5px 5px;
+    }
+
+    #header h4 {
+        text-align: center;
+    }
+
+    #control-container {
+    background-color: var(--panel-color);
+    padding: 5rem;
+    display: none;
+    flex-direction: column;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    height: 300px;
     }
 }
 
-@media (min-width: 551px) {
-    #root {
+/* For Desktop
+----------------------------------------------- */
+@media (min-width: 1251px) {
+    .inner-container {
+        min-width: 50%;
+    }
+    .panel {
+        min-width: 45%;
+        min-height: 10em;
+        padding: 1em;
+        margin: 1em;
+        border-radius: 1em;
+        background-color: var(--panel-color);
+        box-shadow: var(--dark-back-color) 5px 5px;
+    }
+
+    #header p {
+        font-size: 1.5rem;
+    }
+    #logo {
+        float: right;
+        padding-right: 2rem;
+    }
+
+    #control-container {
+        display: none;
+        flex-direction: column;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        height: 300px;
+        flex: 4 40%;
+        background-color: var(--panel-color);
         padding: 5rem;
     }
 }
 
+#logo {
+    height: 10rem;
+}
+
+#description {
+    font-size: 1.5rem;
+    border-left: var(--highlight-color) solid 1rem;
+    padding-left: 1rem;
+    max-width: 100rem;
+    margin: 2rem 0 3rem 0;
+}
+
+.panel-title {
+    font-family: "Playfair Display", sans-serif;
+    font-size: 2rem;
+}
+
+#header {
+    color: var(--text-secondary-color);
+    margin-left: 1.5%;
+}
 
 /* Typography
 –––––––––––––––––––––––––––––––––––––––––––––––––– */
@@ -322,44 +227,76 @@ p {
     margin-top: 0;
 }
 
-#heatmap-title {
-    font-family: "Playfair Display", sans-serif;
-    font-size: 2rem;
+/* Dropdown
+–––––––––––––––––––––––––––––––––––––––––––––––––– */
+.Select-value {
+    cursor: pointer;
 }
 
-#description {
-    font-size: 1.5rem;
-    border-left: var(--highlight-color) solid 1rem;
-    padding-left: 1rem;
-    max-width: 100rem;
-    margin: 2rem 0 3rem 0;
+.Select-control {
+    color: var(--text-primary-color) !important;
 }
 
-#logo {
-    height: 10rem;
+.Select {
+    color: var(--text-secondary-color) !important;
 }
 
-#slider-text, #aggregation-selector {
-    margin-top: 1rem !important;
-    margin-bottom: 1rem !important;
-    font-size: 2rem;
+.Select-clear {
+    color: var(--text-secondary-color)
 }
 
-.control-title {
-    font-weight: bold;
+.Select-menu-outer {
+    background-color: var(--panel-color) !important;
+    border: 1px solid var(--highlight-color) !important;
 }
 
-
-@media only screen and (max-width: 550px) {
-    .rc-slider-mark-text {
-        font-size: 50%;
-    }
-
-    #description {
-        font-size: 1rem;
-    }
+.Select div {
+    background-color: var(--dark-back-color) !important;
 }
 
+.Select-menu-outer div:hover {
+    background-color: rgba(255, 255, 255, 0.01) !important;
+    cursor: pointer;
+}
+
+.Select-value-label {
+    color: var(--text-secondary-color) !important;
+}
+
+.Select--single > .Select-control .Select-value, .Select-placeholder {
+    border: 1px solid var(--highlight-color) !important;
+    border-radius: 4px !important;
+}
+
+/* Slider
+–––––––––––––––––––––––––––––––––––––––––––––––––– */
+.rc-slider-dot-active, .rc-slider-handle {
+    border-color: var(--highlight-color) !important;
+}
+
+.rc-slider-track {
+    background-color: var(--highlight-color) !important
+}
+
+.rc-slider-rail {
+    background-color: #506673 !important
+}
+
+.rc-slider-mark-text {
+    color: var(--text-primary-color);
+}
+
+/* Clearing
+–––––––––––––––––––––––––––––––––––––––––––––––––– */
+
+/* Self Clearing Goodness */
+.container:after,
+.row:after,
+.u-cf {
+    content: "";
+    display: table;
+    clear: both;
+}
 
 /* Blockquotes
 –––––––––––––––––––––––––––––––––––––––––––––––––– */
@@ -630,7 +567,6 @@ ol {
     float: left;
 }
 
-
 /* Misc
 –––––––––––––––––––––––––––––––––––––––––––––––––– */
 hr {
@@ -639,361 +575,6 @@ hr {
     border-width: 0;
     border-top: 1px solid #E1E1E1;
 }
-
-
-
-/* Clearing
-–––––––––––––––––––––––––––––––––––––––––––––––––– */
-
-/* Self Clearing Goodness */
-.container:after,
-.row:after,
-.u-cf {
-    content: "";
-    display: table;
-    clear: both;
-}
-
-/* Slider
-–––––––––––––––––––––––––––––––––––––––––––––––––– */
-
-#dropdown-container {
-    background-color: var(--panel-color);
-    padding: 2rem 6rem 4rem 4rem;
-    height: 15rem;
-}
-
-#year-container {
-    background-color: var(--panel-color);
-    padding-bottom: 1.5rem;
-}
-
-.rc-slider-dot-active, .rc-slider-handle {
-    border-color: var(--highlight-color) !important;
-}
-
-.rc-slider-track {
-    background-color: var(--highlight-color) !important
-}
-
-.rc-slider-rail {
-    background-color: #506673 !important
-}
-
-.rc-slider-mark-text {
-    color: var(--text-primary-color);
-}
-
-/* Heatmap
-–––––––––––––––––––––––––––––––––––––––––––––––––– */
-#heatmap-container {
-    margin: 2.5rem 0 0 0;
-    background-color: var(--panel-color);
-}
-
-#heatmap-title {
-    margin: 0;
-    padding: 1rem;
-}
-
-#county-choropleth {
-    margin: 0;
-    flex-grow: 1;
-}
-
-@media (min-width: 1251px) {
-    #heatmap-container {
-        flex-grow: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-start;
-    }
-}
-
-@media (max-width: 550px) {
-    #county-choropleth .annotation-text{
-        font-size: 1.2rem !important;
-    }
-}
-
-/* Top row
-–––––––––––––––––––––––––––––––––––––––––––––––––– */
-@media only screen and (max-width: 1250px) {
-    /*For mobile and smaller screens*/
-    #top-row {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-start;
-        align-items: stretch;
-        margin-bottom: 5rem;
-    }
-}
-
-@media (min-width: 1251px) {
-    /*For desktop*/
-    #top-row {
-        display: flex;
-        flex-direction: row;
-        justify-content: flex-start;
-        align-items: stretch;
-        height: 100rem;
-        margin-bottom: 5rem;
-    }
-}
-
-/* Left column
-–––––––––––––––––––––––––––––––––––––––––––––––––– */
-@media only screen and (max-width: 1250px) {
-    /*For mobile and smaller screens*/
-    #choropleth-container {
-        margin-right: 1.5%;
-        width: 100%;
-    }
-}
-
-@media (min-width: 1251px) {
-    /*For desktop*/
-    #choropleth-container {
-        margin-right: 1.5%;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-start;
-        align-content: center;
-        flex: 6 60%;
-    }
-}
-
-
-/* Graph
-–––––––––––––––––––––––––––––––––––––––––––––––––– */
-
-#graph-container {
-    background-color: var(--panel-color);
-    padding: 5rem;
-    margin: 0;
-}
-
-@media (max-width: 1250px) {
-    /*For mobile and smaller screens*/
-    #header h4 {
-        text-align: center;
-    }
-
-    #graph-container {
-        margin-top: 5rem;
-    }
-
-    .top-right-panel-graph {
-        height: 55rem;
-    }
-}
-
-@media (min-width: 1251px) {
-    /*For desktop*/
-    #logo {
-        float: right;
-        padding-right: 2rem;
-    }
-
-    #header p {
-        font-size: 1.5rem;
-    }
-
-    #graph-container {
-        flex: 4 40%;
-        margin: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: stretch;
-        justify-content: flex-start;
-    }
-
-    .top-right-panel-graph {
-        flex-grow: 1;
-    }
-
-}
-
-@media (max-width: 550px) {
-    #graph-container {
-        padding: 2.5rem;
-    }
-
-    #selected-data .xtick text{
-        font-size: 1.1rem !important;
-    }
-
-    #selected-data .gtitle{
-        font-size: 1.7rem !important;
-    }
-
-    #selected-control-data .xtick text{
-        font-size: 1.1rem !important;
-    }
-
-    #selected-control-data .gtitle{
-        font-size: 1.7rem !important;
-    }
-}
-
-#aggregation-dropdown {
-    margin-bottom: 3rem;
-}
-
-/* Dropdown
-–––––––––––––––––––––––––––––––––––––––––––––––––– */
-.Select-value {
-    cursor: pointer;
-}
-
-.Select-control {
-    color: var(--text-primary-color) !important;
-}
-
-.Select {
-    color: var(--text-secondary-color) !important;
-}
-
-.Select-clear {
-    color: var(--text-secondary-color)
-}
-
-.Select-menu-outer {
-    background-color: var(--panel-color) !important;
-    border: 1px solid var(--highlight-color) !important;
-}
-
-.Select div {
-    background-color: var(--dark-back-color) !important;
-}
-
-.Select-menu-outer div:hover {
-    background-color: rgba(255, 255, 255, 0.01) !important;
-    cursor: pointer;
-}
-
-.Select-value-label {
-    color: var(--text-secondary-color) !important;
-}
-
-.Select--single > .Select-control .Select-value, .Select-placeholder {
-    border: 1px solid var(--highlight-color) !important;
-    border-radius: 4px !important;
-}
-
-
-/* Bottom row
-–––––––––––––––––––––––––––––––––––––––––––––––––– */
-@media only screen and (max-width: 1250px) {
-    /*For mobile and smaller screens*/
-    #bottom-row {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-start;
-        align-items: stretch;
-        margin-bottom: 5rem;
-    }
-
-    .hidden {
-        display: none;
-    }
-
-    #control-container {
-    background-color: var(--panel-color);
-    padding: 5rem;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    height: 300px;
-    }
-
-    .slider-box {
-        margin: 1rem;
-        width: 60%;
-    }
-    .control-box {
-        margin-top: auto;
-        width: 40%;
-    }
-
-}
-
-@media (min-width: 1251px) {
-    /*For desktop*/
-    #bottom-row {
-        width: 100%;
-        display: flex;
-        flex-direction: row;
-        justify-content: flex-start;
-        align-items: stretch;
-        margin-bottom: 5rem;
-    }
-
-    .hidden {
-        margin-right: 1.5%;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-start;
-        align-content: center;
-        flex: 6 60%;
-    }
-
-    #control-container {
-        display: flex;
-        flex-direction: column;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        height: 300px;
-        flex: 4 40%;
-        background-color: var(--panel-color);
-        padding: 5rem;
-    }
-
-    .slider-box {
-        margin: 1rem;
-        width: 60%;
-    }
-    .control-box {
-        margin-top: auto;
-        width: 40%;
-    }
-}
-
-/* Placement
-–––––––––––––––––––––––––––––––––––––––––––––––––– */
-@media only screen and (max-width: 1250px) {
-    /*For mobile and smaller screens*/
-    #app-container {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-start;
-        align-items: stretch;
-        margin-bottom: 5rem;
-    }
-}
-
-@media (min-width: 1251px) {
-    /*For desktop*/
-    #app-container {
-        display: flex;
-        flex-direction: column; /*row;*/
-        justify-content: flex-start;
-        align-items: stretch;
-        /*height: 100rem;*/
-        margin-bottom: 5rem;
-    }
-}
-
-#header {
-    color: var(--text-secondary-color);
-    margin-left: 1.5%;
-}
-
 
 div, svg {
     user-select: none !important;

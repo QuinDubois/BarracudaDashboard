@@ -11,44 +11,46 @@ import plotly.express as px
 import numpy as np
 import datetime
 import statsmodels.api as sm
-
+from Barracuda_Styles import STYLES
 
 #######################################################################################################################
+
 
 # Primary Plotting Functions
 #######################################################################################################################
-
-def default_chart(color_styles):
-    fig = dict(
-        data=[dict(x=0, y=0)],
+def default_chart(message="Click drag on the map to select counties"):
+    fig = go.Figure(
+        data=[],
         layout=dict(
-            title="Click drag on the map to select counties",
-            paper_bgcolor=color_styles["chart_background"],
-            plot_bgcolor=color_styles["chart_background"],
-            font=dict(color=color_styles["font"]),
-            margin=dict(t=75, r=50, b=100, l=75),
+            title=message,
+            paper_bgcolor=STYLES["chart_background"],
+            plot_bgcolor=STYLES["chart_background"],
+            font=dict(color=STYLES["font"]),
+            margin=STYLES['margins'],
         )
     )
     return fig
 
 
 # Creates a simple line plot.
-def plot_line(df, time_val, y_val, color_styles):
+def plot_line(df, time_val, y_val, label):
     fig = go.Figure()
 
     fig.add_trace(go.Scatter(
         x=df[time_val],
         y=df[y_val],
         mode='lines',
-        line={'color': color_styles['line_colors'][0]},
+        line={'color': STYLES['line_colors'][0]},
         showlegend=False
     ))
+
+    fig_layout = style_figure(fig['layout'], label)
 
     return fig
 
 
 # Creates a control chart plotly figure based on the input DataFrame and parameters
-def plot_control(dataframe, segments, y_col, time_key, show_all, flags):
+def plot_control(dataframe, segments, y_col, time_key, label, show_all, flags):
 
     fig = go.Figure()
 
@@ -97,11 +99,35 @@ def plot_control(dataframe, segments, y_col, time_key, show_all, flags):
                   yref='y'
                   )
 
+    fig_layout = style_figure(fig['layout'], label)
+
+    return fig
+
+
+# Create statespace figure
+def plot_statespace(df, time_val, lat_val, lon_val, label):
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=df[time_val],
+        y=df[lat_val],
+        mode='lines',
+        name="Latitude",
+    ))
+    fig.add_trace(go.Scatter(
+        x=df[time_val],
+        y=df[lon_val],
+        mode='lines',
+        name="Longitude",
+    ))
+
+    fig_layout = style_figure(fig['layout'], label)
+
     return fig
 
 
 # Creates Choropleth figure
-def plot_choropleth(figure, dataframe, dataframe_label, data_label, data_json, color_styles, years, counties):
+def plot_choropleth(figure, dataframe, dataframe_label, data_label, data_json, years, counties):
     # write if else statement here:
     if data_json[dataframe_label]['space_type'] == 'latlong':
         # plot scatter box
@@ -119,9 +145,9 @@ def plot_choropleth(figure, dataframe, dataframe_label, data_label, data_json, c
                                 )
         fig.update_layout(mapbox_style="carto-darkmatter", mapbox_zoom=4.5, mapbox_center={"lat": 43, "lon": -74}, )
         fig.update_layout(margin={"r": 0, "t": 0, "l": 20, "b": 0},
-                          plot_bgcolor=color_styles["chart_background"],
-                          paper_bgcolor=color_styles["chart_background"],
-                          font=dict(color=color_styles["font"]),
+                          plot_bgcolor=STYLES["chart_background"],
+                          paper_bgcolor=STYLES["chart_background"],
+                          font=dict(color=STYLES["font"]),
                           # dragmode="lasso",
                           )
         fig.layout.updatemenus[0].buttons[0].args[1]["frame"]["duration"] = 200
@@ -142,7 +168,6 @@ def plot_choropleth(figure, dataframe, dataframe_label, data_label, data_json, c
 
         fig = px.choropleth_mapbox(map_dat_filtered, geojson=counties, locations='fips', color=data_label,
                                    color_continuous_scale="Viridis",
-                                   # animation_frame="year",
                                    range_color=(0, max_val),
                                    mapbox_style="carto-darkmatter",
                                    zoom=2.9, center={"lat": 34.640033, "lon": -95.981758},
@@ -152,10 +177,9 @@ def plot_choropleth(figure, dataframe, dataframe_label, data_label, data_json, c
 
         fig.update_layout(margin={"r": 0, "t": 0, "l": 20, "b": 0},
                           geo_scope='usa',
-                          # dragmode="lasso", #select
-                          plot_bgcolor=color_styles["chart_background"],  # 1f2630 dark blue
-                          paper_bgcolor=color_styles["chart_background"],  # 7fafdf light blue text
-                          font=dict(color=color_styles["font"]),
+                          plot_bgcolor=STYLES["chart_background"],
+                          paper_bgcolor=STYLES["chart_background"],
+                          font=dict(color=STYLES["font"]),
                           height=600,
                           )
 
@@ -187,12 +211,15 @@ def plot_trends(fig, df_plot, segments, y_col, time_key, show_all, flags):
         print_trend = False
 
         if show_all:
-            print_trend = True
+            if (flags['trending up'][1] == 1 and model.params['serial_time'] > 0) \
+                    or (flags['trending down'][1] == 1 and model.params['serial_time'] <= 0):
+                print_trend = True
+            else:
+                pass
         else:
             if model.f_pvalue < 0.05:
-                if flags['trending up'][1] == 1 and model.params['serial_time'] > 0:
-                    print_trend = True
-                elif flags['trending down'][1] == 1 and model.params['serial_time'] <= 0:
+                if (flags['trending up'][1] == 1 and model.params['serial_time'] > 0) \
+                        or (flags['trending down'][1] == 1 and model.params['serial_time'] <= 0):
                     print_trend = True
                 else:
                     pass
@@ -217,4 +244,29 @@ def plot_trends(fig, df_plot, segments, y_col, time_key, show_all, flags):
 
     return fig
 
+
+# Figure Style Information
+def style_figure(layout, title):
+    fig_layout = layout
+
+    # See plot.ly/python/reference
+    fig_layout["yaxis"]["title"] = title
+    fig_layout["xaxis"]["title"] = "Time (years)"
+    fig_layout["yaxis"]["fixedrange"] = True
+    fig_layout["xaxis"]["fixedrange"] = False
+    fig_layout["hovermode"] = "closest"
+    fig_layout["legend"] = dict(orientation="v")
+    fig_layout["autosize"] = False
+    fig_layout["height"] = 600
+    fig_layout["width"] = 872
+    fig_layout["paper_bgcolor"] = STYLES["chart_background"]
+    fig_layout["plot_bgcolor"] = STYLES["chart_background"]
+    fig_layout["font"]["color"] = STYLES["font"]
+    fig_layout["xaxis"]["tickfont"]["color"] = STYLES["tick_font"]
+    fig_layout["yaxis"]["tickfont"]["color"] = STYLES["tick_font"]
+    fig_layout["xaxis"]["gridcolor"] = STYLES["chart_grid"]
+    fig_layout["yaxis"]["gridcolor"] = STYLES["chart_grid"]
+    fig_layout["margin"] = STYLES['margins']
+
+    return fig_layout
 #######################################################################################################################
