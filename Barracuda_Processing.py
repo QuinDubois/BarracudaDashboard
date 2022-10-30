@@ -1,11 +1,9 @@
 import pandas as pd
 import numpy as np
 
+
 #######################################################################################################################
-
-
 # Flag records in the input dataset with the input flags
-#######################################################################################################################
 def control_sort(dataframe, y_col, time_key, trend_size, deviation, flags):
     avg = np.average(dataframe[y_col])          # average of the dataset
     std = np.std(dataframe[y_col])              # standard deviation of the dataset
@@ -28,16 +26,14 @@ def control_sort(dataframe, y_col, time_key, trend_size, deviation, flags):
                 dataframe[key + ' mask'] = np.where(dataframe[y_col].values < avg - (std * std_co), 1, 0)
 
             if key == 'trending up' or key == 'trending down':
-                relevant_bounds_idx = trend_by_slope(dataframe, y_col, time_key, trend_size)
+                relevant_bounds_idx = trend_by_slope(dataframe, y_col, trend_size)
 
     return dataframe, relevant_bounds_idx
-#######################################################################################################################
 
 
 # Trend detection, runs cumulative linear slope calculations over the dataset, marking segments that constitute trends
 # based on our input data
-#######################################################################################################################
-def trend_by_slope(dataframe, y_col, time_key, t_size):
+def trend_by_slope(dataframe, y_col, t_size):
     min_change = t_size
     curr_changes = 0
     last_sign = 1
@@ -50,7 +46,7 @@ def trend_by_slope(dataframe, y_col, time_key, t_size):
     for i in range(1, dataframe.shape[0]):
         segment = dataframe.iloc[0:i+1, :]
 
-        slope = calc_slope(segment, time_key, y_col)
+        slope = calc_slope(segment, y_col)
         cumulative_slope.append(slope)
 
         # compare the current cumulative slope with the previous, and keep track of whether it increased or decreased
@@ -81,12 +77,36 @@ def trend_by_slope(dataframe, y_col, time_key, t_size):
     bounds_idx.append(dataframe.shape[0]-1)
 
     return bounds_idx
+
+
+# Aggregators for the dataset
+def aggregate_dataframe(df, time_val, lat_val, lon_val, y_val, agg_type):
+    if agg_type == "mean":
+        summ_df = df[[time_val, lat_val, lon_val, y_val]].groupby(time_val).mean().reset_index()
+
+    # if the dataset is of even length, round down to the next closest median.
+    if agg_type == "median":
+        if len(df.index) % 2 == 0:
+            sorted_df = df.sort_values(by=[y_val], ascending=True)
+            summ_df = sorted_df.groupby(time_val).apply(
+                lambda x: x[x[y_val] == x[y_val].iloc[0:(int(len(x) - 1))].median()])
+        else:
+            summ_df = df.groupby(time_val).apply(
+                lambda x: x[x[y_val] == x[y_val].median()])
+
+    if agg_type == "max":
+        summ_df = df.groupby(time_val).apply(lambda x: x[x[y_val] == x[y_val].max()])
+
+    if agg_type == "min":
+        summ_df = df.groupby(time_val).apply(lambda x: x[x[y_val] == x[y_val].min()])
+
+    return summ_df
 #######################################################################################################################
 
 
 # Helper Functions
 #######################################################################################################################
 # helper function to calculate slope of a dataframe
-def calc_slope(df, time_key, y_val):
+def calc_slope(df, y_val):
     slope = np.polyfit(df['row'], df[y_val], 1)
     return slope[0]

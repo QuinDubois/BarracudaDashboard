@@ -1,7 +1,7 @@
 # Barracuda Dashboard
 # Authors: Alex Burnham, Quinlan Dubois
-# Latest Revision: 0.2.1
-# Latest Revision Date: 10/29/2022
+# Latest Revision: 0.2.2
+# Latest Revision Date: 10/30/2022
 
 
 # File Header containing imports, constants, and start-up processing.
@@ -20,7 +20,7 @@ import pandas as pd
 from App import app
 from App import server
 
-from Barracuda_Processing import control_sort
+from Barracuda_Processing import control_sort, aggregate_dataframe
 from Barracuda_Plotting import default_chart, plot_line, plot_control, plot_choropleth, plot_statespace
 from Barracuda_Styles import data_styles
 
@@ -60,7 +60,7 @@ df_carya_ovata_spacetime['time'] = df_carya_ovata_spacetime['time'].astype("date
 # read in precipitation dataset imported from spacetime API
 data_precipitation = "data/precip_past.csv"
 df_precipitation = pd.read_csv(data_precipitation)
-df_precipitation['time'] = df_carya_ovata_spacetime['time'].astype("datetime64[ns]")
+df_precipitation['time'] = df_precipitation['time'].astype("datetime64[ns]")
 
 #############################################################################
 
@@ -540,17 +540,7 @@ def display_line_chart(selected_data, chart_dropdown, data_dropdown, dataframe_d
             return fig
 
         # select the data to plot
-        if chart_dropdown == "mean":
-            summ_df = sub_df.groupby(time_val).mean().reset_index()
-
-        if chart_dropdown == "median":
-            summ_df = sub_df.groupby(time_val).median().reset_index()
-
-        if chart_dropdown == "min":
-            summ_df = sub_df.groupby(time_val).min().reset_index()
-
-        if chart_dropdown == "max":
-            summ_df = sub_df.groupby(time_val).max().reset_index()
+        summ_df = aggregate_dataframe(sub_df, time_val, lat_val, lon_val, y_val, chart_dropdown)
 
         # Line Chart Figure
         line_fig = plot_line(summ_df, time_val, y_val, the_label)
@@ -623,17 +613,7 @@ def display_control_chart(selected_data, chart_dropdown, data_dropdown, datafram
             return fig
 
         # select the data to plot
-        if chart_dropdown == "mean":
-            summ_df = sub_df.groupby(time_val).mean().reset_index()
-
-        if chart_dropdown == "median":
-            summ_df = sub_df.groupby(time_val).median().reset_index()
-
-        if chart_dropdown == "min":
-            summ_df = sub_df.groupby(time_val).min().reset_index()
-
-        if chart_dropdown == "max":
-            summ_df = sub_df.groupby(time_val).max().reset_index()
+        summ_df = aggregate_dataframe(sub_df, time_val, lat_val, lon_val, y_val, chart_dropdown)
 
         # update enabled flags based on checklist state
         flag_dict = data_styles
@@ -715,21 +695,7 @@ def display_statespace_chart(selected_data, chart_dropdown, data_dropdown, dataf
         if chart_dropdown != "mean":
             statespace_df = sub_df[[time_val, y_val, lat_val, lon_val]]
 
-            # if the dataset is of even length, round down to the next closest median value.
-            if chart_dropdown == "median":
-                if len(vals) % 2 == 0:
-                    sorted_ss_df = statespace_df.sort_values(by=[y_val], ascending=True)
-                    statespace_chart_df = sorted_ss_df.groupby(time_val).apply(
-                        lambda x: x[x[y_val] == x[y_val].iloc[0:(int(len(x) - 1))].median()])
-                else:
-                    statespace_chart_df = statespace_df.groupby(time_val).apply(
-                        lambda x: x[x[y_val] == x[y_val].median()])
-
-            if chart_dropdown == "max":
-                statespace_chart_df = statespace_df.groupby(time_val).apply(lambda x: x[x[y_val] == x[y_val].max()])
-
-            if chart_dropdown == "min":
-                statespace_chart_df = statespace_df.groupby(time_val).apply(lambda x: x[x[y_val] == x[y_val].min()])
+            statespace_chart_df = aggregate_dataframe(statespace_df, time_val, lat_val, lon_val, y_val, chart_dropdown)
 
             # State-space chart
             statespace_fig = plot_statespace(statespace_chart_df, time_val, lat_val, lon_val, the_label)
@@ -823,8 +789,6 @@ def change_panel(chart_swapper, aggregation_dropdown):
     ]
 )
 def update_data_selector(dataframe_dropdown):
-    data_opts = []
-
     data_opts = data_json_dict[dataframe_dropdown]['fields']
     data_value = data_json_dict[dataframe_dropdown]['fields'][0]["value"]
 
