@@ -55,20 +55,16 @@ def plot_control(dataframe, segments, y_col, time_key, label, show_all, flags):
                              line_color=flags["base"][0],
                              showlegend=False))
 
-    trace_count = 1  # Track which trace we are on
-
     print_trend = True
 
-    # loop to generate chart contents, do not include markers without a flag in the legend
+    # loop to generate a trace for each flag
     for d in flags:
         if flags[d][1] == 1:
             if (d == 'trending up' or d == 'trending down') and print_trend:
-
                 fig = plot_trends(fig, dataframe, segments, y_col, time_key, show_all, flags)
-
                 print_trend = False
 
-            # For all other data, we only use scatter plot markers.
+            # For all non-trend data, we use scatter plot markers.
             elif d not in ['trending up', 'trending down']:
                 d_filter = d + ' mask'
                 df = dataframe.loc[dataframe[d_filter] == 1]
@@ -78,7 +74,6 @@ def plot_control(dataframe, segments, y_col, time_key, label, show_all, flags):
                                          name=d,
                                          marker_color=flags[d][0],
                                          showlegend=False if d == 'base' else True))
-            trace_count += 1
 
     # Line indicating average value of the dataset
     fig.add_shape(type="line",
@@ -121,11 +116,8 @@ def plot_statespace(df, time_val, lat_val, lon_val, label):
 
 
 # Creates Choropleth figure
-def plot_choropleth(figure, dataframe, dataframe_label, data_label, data_json, years, counties):
-    # write if else statement here:
+def plot_choropleth(dataframe, dataframe_label, data_label, data_json, years, counties):
     if data_json[dataframe_label]['space_type'] == 'latlong':
-        # plot scatter box
-        # find the max value
         dataframe['timeChar'] = dataframe[data_json[dataframe_label]['temporal_key']].astype('str')
         max_val = np.nanmax(dataframe[data_label])
 
@@ -137,6 +129,8 @@ def plot_choropleth(figure, dataframe, dataframe_label, data_label, data_json, y
                                 color_continuous_scale="Viridis",
                                 opacity=0.8,
                                 )
+
+        # Choropleth Layout
         fig.update_layout(mapbox_style="carto-darkmatter", mapbox_zoom=4.5, mapbox_center={"lat": 43, "lon": -74}, )
         fig.update_layout(margin={"r": 0, "t": 0, "l": 20, "b": 0},
                           plot_bgcolor=STYLES["chart_background"],
@@ -152,8 +146,6 @@ def plot_choropleth(figure, dataframe, dataframe_label, data_label, data_json, y
         fig.layout.height = 600
 
     else:
-        # plot choropleth
-
         # Find max value for heat map bar
         max_val = max(dataframe[data_label])
 
@@ -181,13 +173,15 @@ def plot_choropleth(figure, dataframe, dataframe_label, data_label, data_json, y
 #######################################################################################################################
 
 
-# Add trend lines to figure, plots trend lines of imported segments for the dataset.
+# Helper Functions
 #######################################################################################################################
+# Add trend lines to figure, plots trend lines of imported segments for the dataset.
 def plot_trends(fig, df_plot, segments, y_col, time_key, show_all, flags):
 
     for start_idx, end_idx in zip(segments[:-1], segments[1:]):
         segment = df_plot.iloc[start_idx:end_idx + 1, :].copy()
 
+        # Serialize the temporal column if it isn't already numeric
         if not is_numeric_dtype(segment[time_key]):
             segment['serial_time'] = [(d - datetime.datetime(1970, 1, 1)).days for d in segment[time_key]]
         else:
@@ -202,6 +196,7 @@ def plot_trends(fig, df_plot, segments, y_col, time_key, show_all, flags):
 
         trend_name = "Trending Up" if model.params['serial_time'] > 0 else "Trending Down"
 
+        # Determine whether the current segment should be printed or not.
         print_trend = False
 
         if show_all:
@@ -229,7 +224,7 @@ def plot_trends(fig, df_plot, segments, y_col, time_key, show_all, flags):
                 name=trend_name,
             ))
 
-    # Ensure duplicate legend items get filtered
+    # Ensure duplicate legend items get removed
     legend_names = set()
     fig.for_each_trace(
         lambda trace:

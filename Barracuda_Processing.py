@@ -3,14 +3,13 @@ import numpy as np
 
 
 #######################################################################################################################
-# Flag records in the input dataset with the input flags
-def control_sort(dataframe, y_col, time_key, trend_size, deviation, flags):
-    avg = np.average(dataframe[y_col])          # average of the dataset
-    std = np.std(dataframe[y_col])              # standard deviation of the dataset
-    std_co = deviation                          # coefficient to determine the minimum deviations we care about
-    relevant_bounds_idx = []                    # an index of bounds for the segments of the trend chart
+# Add masking columns to the dataset to allow the control chart to select the relevant rows for traces.
+def control_sort(dataframe, y_col, trend_size, deviation, flags):
+    avg = np.average(dataframe[y_col])
+    std = np.std(dataframe[y_col])
+    std_co = deviation
+    segments = []
 
-    # Main process loop, for every enabled flag, mark the relevant data.
     for key in flags:
         if flags[key][1] == 1:
             if key == 'above average':
@@ -32,7 +31,6 @@ def control_sort(dataframe, y_col, time_key, trend_size, deviation, flags):
 
 
 # Trend detection, runs cumulative linear slope calculations over the dataset, marking segments that constitute trends
-# based on our input data
 def trend_by_slope(dataframe, y_col, t_size):
     min_change = t_size
     curr_changes = 0

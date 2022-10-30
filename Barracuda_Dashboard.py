@@ -1,6 +1,6 @@
 # Barracuda Dashboard
 # Authors: Alex Burnham, Quinlan Dubois
-# Latest Revision: 0.2.2
+# Latest Revision: 0.2.4
 # Latest Revision Date: 10/30/2022
 
 
@@ -478,7 +478,7 @@ def update_year_slider_visibility(visibility_state):
 def display_map(figure, data_dropdown, dataframe_dropdown, year_slider):
     map_dat = select_dataframe(dataframe_dropdown)
     fig = plot_choropleth(
-        figure, map_dat, dataframe_dropdown, data_dropdown, data_json_dict, year_slider, counties
+        map_dat, dataframe_dropdown, data_dropdown, data_json_dict, year_slider, counties
     )
 
     return fig
@@ -623,7 +623,7 @@ def display_control_chart(selected_data, chart_dropdown, data_dropdown, datafram
             else:
                 flag_dict[fkey][1] = 1
 
-        con_df, segments = control_sort(summ_df, y_val, time_val, trend, deviation, flag_dict)
+        con_df, segments = control_sort(summ_df, y_val, trend, deviation, flag_dict)
 
         # Control Chart Fig
         control_fig = plot_control(con_df, segments, y_val, time_val, the_label, all_trends, flag_dict)
