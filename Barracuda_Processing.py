@@ -26,9 +26,9 @@ def control_sort(dataframe, y_col, time_key, trend_size, deviation, flags):
                 dataframe[key + ' mask'] = np.where(dataframe[y_col].values < avg - (std * std_co), 1, 0)
 
             if key == 'trending up' or key == 'trending down':
-                relevant_bounds_idx = trend_by_slope(dataframe, y_col, trend_size)
+                segments = trend_by_slope(dataframe, y_col, trend_size)
 
-    return dataframe, relevant_bounds_idx
+    return dataframe, segments
 
 
 # Trend detection, runs cumulative linear slope calculations over the dataset, marking segments that constitute trends
